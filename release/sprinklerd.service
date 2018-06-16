@@ -1,0 +1,21 @@
+
+[Unit]
+Description=Aqualink RS daemon
+ConditionPathExists=/etc/sprinklerd.conf
+After=network.target multi-user.target
+Requires=network.target
+
+[Service]
+Type=forking
+#RemainAfterExit=no
+#StartLimitInterval=0
+PIDFile=/run/sprinklerd.pid 
+EnvironmentFile=/etc/default/sprinklerd
+ExecStart=/usr/local/bin/sprinklerd $OPTS
+ExecReload=/bin/kill -HUP $MAINPID
+#Restart=on-failure
+KillMode=process
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,5 @@
+00 08 * * 1 /usr/bin/curl 'localhost?type=cron&zone=1&runtime=12'
+12 08 * * 1 /usr/bin/curl 'localhost?type=cron&zone=2&runtime=10'
+22 08 * * 1 /usr/bin/curl 'localhost?type=cron&zone=3&runtime=8'
+00 08 * * 2 /usr/bin/curl 'localhost?type=cron&zone=1&runtime=8'
+00 22 * * 3 /usr/bin/curl 'localhost?type=cron&zone=2&runtime=10'
