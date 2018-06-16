@@ -4,7 +4,7 @@
 More detailes to come
 
 Has web interface on port 80 (or what ever you configure it to)
-
+```
 API endpoints
   /?type=firstload                         // Include cal schedule
   /?type=read                              // no need to include cal schedule
@@ -36,4 +36,5 @@ API endpoints
   /sprinklerd/zall
   /sprinklerd/24hdelay
   /sprinklerd/system
+```
 
