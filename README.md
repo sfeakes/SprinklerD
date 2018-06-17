@@ -9,11 +9,11 @@ It is not designed to be a feature rich solution with elaborate UI, but rather a
 ### It does not, and will never provide any layer of security. NEVER directly expose the device running this software to the outside world, only indirectly through the use of Home Automation hub's or other securty measures, e.g. VPNs.
 
 ## Builtin WEB Interface.
-![Image](extras/MainUI.png?raw=true)
-![Image](extras/CalendarUI.png?raw=true)
+![Image](extras/MainUI.PNG?raw=true)
+![Image](extras/CalendarUI.PNG?raw=true)
 
 ## In Apple Home app.
-![Image](extras/Homekit.png?raw=true)
+![Image](extras/Homekit.PNG?raw=true)
 
 # TL;DR Install
 ## Quick instal if you are using Raspberry PI
