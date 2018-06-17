@@ -152,7 +152,7 @@ void publish_zone_mqtt(struct mg_connection *nc, struct GPIOcfg *gpiopin) {
     send_mqtt_msg(nc, mqtt_topic, mqtt_msg);
   }
   if (gpiopin->dz_idx > 0 && _gpioconfig_.enableMQTTdz == true) {
-    build_dz_mqtt_status_JSON(mqtt_msg, 50, gpiopin->dz_idx, (digitalRead(gpiopin->pin) == 0 ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
+    build_dz_mqtt_status_JSON(mqtt_msg, 50, gpiopin->dz_idx, (digitalRead(gpiopin->pin) == gpiopin->on_state ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
     send_mqtt_msg(nc, _gpioconfig_.mqtt_dz_pub_topic, mqtt_msg);
   }
 }
@@ -411,19 +411,25 @@ void action_domoticz_mqtt_message(struct mg_connection *nc, struct mg_mqtt_messa
   char svalue[DZ_SVALUE_LEN];
 
   if (parseJSONmqttrequest(msg->payload.p, msg->payload.len, &idx, &nvalue, svalue)) {
-    for (i=0; i < _gpioconfig_.pinscfgs ; i++)
-    {
+    if (idx == _gpioconfig_.dzidx_system)
+      _gpioconfig_.system=(nvalue==DZ_ON?true:false);
+    else if (idx == _gpioconfig_.dzidx_24hdelay)
+      enable_delay24h((nvalue==DZ_ON?true:false));
+    else if (idx == _gpioconfig_.dzidx_allzones)
+      zc_zone(zcALL, 0, (nvalue==DZ_ON?zcON:zcOFF), 0);
+    else {
+     for (i=0; i < _gpioconfig_.pinscfgs ; i++)
+     {
       if ( _gpioconfig_.gpiocfg[i].dz_idx == idx ) {
         logMessage(LOG_INFO, "Domoticz MQT id %d matched Pin %d %s\n",idx, _gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].name);
-        if ( nvalue == DZ_ON )
-          //switchPin(nc, &_gpioconfig_.gpiocfg[i], ON);
-          logMessage(LOG_INFO, "ADD TURN ON CODE");
-        else if ( nvalue == DZ_OFF )
-          //switchPin(nc, &_gpioconfig_.gpiocfg[i], OFF);
-          logMessage(LOG_INFO, "ADD TURN OFF CODE");
-        else
-          logMessage(LOG_WARNING, "Domoticz MQT id %d, unknown state to set %d\n",idx,nvalue); 
+        if ( nvalue == DZ_ON || nvalue == DZ_OFF) {
+          zc_zone(zcSINGLE, _gpioconfig_.gpiocfg[i].zone, (nvalue==DZ_ON?zcON:zcOFF), 0);
+          logMessage(LOG_DEBUG, "Domoticz MQT: Turn zone %d %s\n",_gpioconfig_.gpiocfg[i].zone, nvalue==DZ_ON?"ON":"OFF");
+        } else {
+          logMessage(LOG_WARNING, "Domoticz MQT id %d, unknown state to set %d\n",idx,nvalue);
+        }
       }
+     }
     }
   }
 }

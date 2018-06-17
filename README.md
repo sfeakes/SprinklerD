@@ -5,6 +5,7 @@ More details & pics to come
 
 linux daemon to control sprinklers. The control is done through GPIO pins, so simply connect a relay board to the GPOI. Provides web UI, MQTT client & HTTP API endpoints. So you can control your pool equiptment from any phone/tablet or computer, and should work with just about Home control systems, including Apple HomeKit, Samsung, Alexa, Google, etc home hubs.
 It is not designed to be a feature rich solution with elaborate UI, but rather a solution that cna be controlled from smart hubs.  It does have a web UI and basic calendar for scheduling zone runtimes, rain day delay etc. But advanced features like rain censors and web forecast delays should be done through your smat hub. 
+It does support a master valve or pump. (ie turn on a master device with every zone).
 
 ### It does not, and will never provide any layer of security. NEVER directly expose the device running this software to the outside world, only indirectly through the use of Home Automation hub's or other securty measures, e.g. VPNs.
 
@@ -130,6 +131,11 @@ Recomended option for HomeKit support is to make use of the MQTT interface and u
 
 
 You can of course use a myriad of other HomeKit bridges with the URL endpoints listed in the `All other hubs section`, or MQTT topics listed in the `MQTT` section. The majority of them (including HomeBridge the most popular) use Node and HAP-Node.JS, neither of which I am a fan of for the RaspberryPI. But HomeKit2MQTT seemed to have the least overhead of them all. So that's why the recomendation.
+
+## Domoticz
+Does support domoticz, need to add documentation.
+* add virtual censor for every zone and buton
+* add the domoticz ID's in he config.
 
 
 # License

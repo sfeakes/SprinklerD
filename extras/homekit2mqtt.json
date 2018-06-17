@@ -1,0 +1,245 @@
+{  
+  "Sprinklerd System": {
+    "id": "SprinklerdSystem",
+    "name": "System",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdSystem",
+    "services": [
+      {
+        "name": "System",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/system/set",
+          "statusOn": "sprinklerd/system"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+  "Sprinklerd 24hdelay": {
+    "id": "Sprinklerd24hdelay",
+    "name": "24hdelay",
+    "manufacturer": "Feakes Inc",
+    "model": "Sprinklerd24hdelay",
+    "services": [
+      {
+        "name": "24hdelay",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/24hdelay/set",
+          "statusOn": "sprinklerd/24hdelay"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+  "Sprinklerd Cycleallzones": {
+    "id": "SprinklerdCycleallzones",
+    "name": "Cycle All",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdCycleallzones",
+    "services": [
+      {
+        "name": "Cycle All",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/cycleallzones/set",
+          "statusOn": "sprinklerd/cycleallzones"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+
+  "Sprinklerd Zone1": {
+    "id": "SprinklerdZone1",
+    "name": "Zone 1",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdZone",
+    "services": [
+      {
+        "name": "Zone 1",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/zone/1/set",
+          "statusOn": "sprinklerd/zone/1"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+  "Sprinklerd Zone2": {
+    "id": "SprinklerdZone2",
+    "name": "Zone 2",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdZone",
+    "services": [
+      {
+        "name": "Zone 2",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/zone/2/set",
+          "statusOn": "sprinklerd/zone/2"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+  "Sprinklerd Zone3": {
+    "id": "SprinklerdZone3",
+    "name": "Zone 3",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdZone",
+    "services": [
+      {
+        "name": "Zone 3",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/zone/3/set",
+          "statusOn": "sprinklerd/zone/3"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+  "Sprinklerd Zone4": {
+    "id": "SprinklerdZone4",
+    "name": "Zone 4",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdZone",
+    "services": [
+      {
+        "name": "Zone 4",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/zone/4/set",
+          "statusOn": "sprinklerd/zone/4"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+  "Sprinklerd Zone5": {
+    "id": "SprinklerdZone5",
+    "name": "Zone 5",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdZone",
+    "services": [
+      {
+        "name": "Zone 5",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/zone/5/set",
+          "statusOn": "sprinklerd/zone/5"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+  "Sprinklerd Zone6": {
+    "id": "SprinklerdZone6",
+    "name": "Zone 6",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdZone",
+    "services": [
+      {
+        "name": "Zone 6",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/zone/6/set",
+          "statusOn": "sprinklerd/zone/6"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+  "Sprinklerd Zone7": {
+    "id": "SprinklerdZone7",
+    "name": "Zone 7",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdZone",
+    "services": [
+      {
+        "name": "Zone 7",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/zone/7/set",
+          "statusOn": "sprinklerd/zone/7"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+  "Sprinklerd Zone8": {
+    "id": "SprinklerdZone8",
+    "name": "Zone 8",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdZone",
+    "services": [
+      {
+        "name": "Zone 8",
+        "service": "Switch",
+        "topic": {
+          "setOn": "sprinklerd/zone/8/set",
+          "statusOn": "sprinklerd/zone/8"
+        },
+        "payload": {
+          "onTrue": 1,
+          "onFalse": 0
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  }
+}

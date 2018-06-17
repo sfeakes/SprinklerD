@@ -53,6 +53,9 @@ struct GPIOCONTROLcfg {
   char mqtt_dz_sub_topic[50];
   char mqtt_dz_pub_topic[50];
   char mqtt_ID[MQTT_ID_LEN];
+  int dzidx_system;
+  int dzidx_24hdelay;
+  int dzidx_allzones;
   bool enableMQTTdz;
   bool enableMQTTaq;
   int pinscfgs;

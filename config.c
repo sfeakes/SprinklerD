@@ -193,7 +193,7 @@ void readCfg(char *inifile)
   int i;
   int idx=0;
 
-  ini_gets("SPRINKLERD", "log_level", "WARNING", str, sizearray(str), inifile);
+  ini_gets("SPRINKLERD", "LOG_LEVEL", "WARNING", str, sizearray(str), inifile);
   if (_gpioconfig_.log_level != LOG_DEBUG)
     _gpioconfig_.log_level = text2elevel(str);
 
@@ -201,17 +201,17 @@ void readCfg(char *inifile)
   ini_gets("SPRINKLERD", "PORT", "8888", _gpioconfig_.socket_port, sizearray(_gpioconfig_.socket_port), inifile);
   ini_gets("SPRINKLERD", "DOCUMENTROOT", "./", _gpioconfig_.docroot, sizearray(_gpioconfig_.docroot), inifile);
   ini_gets("SPRINKLERD", "CACHE", "/tmp/sprinklerd.cache", _gpioconfig_.cache_file, sizearray(_gpioconfig_.cache_file), inifile);
-  ini_gets("SPRINKLERD", "mqtt_address", NULL, _gpioconfig_.mqtt_address, sizearray(_gpioconfig_.mqtt_address), inifile);
-  ini_gets("SPRINKLERD", "mqtt_user", NULL, _gpioconfig_.mqtt_user, sizearray(_gpioconfig_.mqtt_user), inifile);
-  ini_gets("SPRINKLERD", "mqtt_passwd", NULL, _gpioconfig_.mqtt_passwd, sizearray(_gpioconfig_.mqtt_passwd), inifile);
+  ini_gets("SPRINKLERD", "MQTT_ADDRESS", NULL, _gpioconfig_.mqtt_address, sizearray(_gpioconfig_.mqtt_address), inifile);
+  ini_gets("SPRINKLERD", "MQTT_USER", NULL, _gpioconfig_.mqtt_user, sizearray(_gpioconfig_.mqtt_user), inifile);
+  ini_gets("SPRINKLERD", "MQTT_PASSWD", NULL, _gpioconfig_.mqtt_passwd, sizearray(_gpioconfig_.mqtt_passwd), inifile);
   
-  if ( ini_gets("SPRINKLERD", "mqtt_topic", NULL, _gpioconfig_.mqtt_topic, sizearray(_gpioconfig_.mqtt_topic), inifile) > 0 )
+  if ( ini_gets("SPRINKLERD", "MQT_TOPIC", NULL, _gpioconfig_.mqtt_topic, sizearray(_gpioconfig_.mqtt_topic), inifile) > 0 )
     _gpioconfig_.enableMQTTaq = true;
   else
     _gpioconfig_.enableMQTTaq = false;
 
-  if ( ini_gets("SPRINKLERD", "mqtt_dz_pub_topic", NULL, _gpioconfig_.mqtt_dz_pub_topic, sizearray(_gpioconfig_.mqtt_dz_pub_topic), inifile) > 0 &&
-       ini_gets("SPRINKLERD", "mqtt_dz_sub_topic", NULL, _gpioconfig_.mqtt_dz_sub_topic, sizearray(_gpioconfig_.mqtt_dz_sub_topic), inifile) > 0)
+  if ( ini_gets("SPRINKLERD", "MQTT_DZ_PUB_TOPIC", NULL, _gpioconfig_.mqtt_dz_pub_topic, sizearray(_gpioconfig_.mqtt_dz_pub_topic), inifile) > 0 &&
+       ini_gets("SPRINKLERD", "MQTT_DZ_SUB_TOPIC", NULL, _gpioconfig_.mqtt_dz_sub_topic, sizearray(_gpioconfig_.mqtt_dz_sub_topic), inifile) > 0)
     _gpioconfig_.enableMQTTdz = true;
   else
     _gpioconfig_.enableMQTTdz = false;
@@ -223,6 +223,10 @@ void readCfg(char *inifile)
   } else {
     logMessage (LOG_DEBUG,"Config mqtt 'disabeled'\n");
   }
+
+  _gpioconfig_.dzidx_system = ini_getl(str, "DZIDX_SYSTEM", 0, inifile);
+  _gpioconfig_.dzidx_24hdelay = ini_getl(str, "DZIDX_24HDELAY", 0, inifile);
+  _gpioconfig_.dzidx_allzones = ini_getl(str, "DZIDX_ALL_ZONES", 0, inifile);
 
   logMessage (LOG_INFO, "Name = %s\n", _gpioconfig_.name);
   logMessage (LOG_INFO, "Port = %s\n", _gpioconfig_.socket_port);
