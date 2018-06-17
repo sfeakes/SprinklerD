@@ -63,7 +63,7 @@ void write_cron() {
     //fprintf(stdout, "Open file failed 'sprinkler.cron'\n");
     return;
   }
-  fprintf(fp, "***** AUTO GENERATED DO NOT EDIT *****\n");
+  fprintf(fp, "#***** AUTO GENERATED DO NOT EDIT *****\n");
 
   for (day=0; day <= 6; day++) {
     if (_gpioconfig_.cron[day].hour >= 0 && _gpioconfig_.cron[day].minute >= 0) {
@@ -87,7 +87,7 @@ void write_cron() {
       }
     }
   }
-  fprintf(fp, "***** AUTO GENERATED DO NOT EDIT *****\n");
+  fprintf(fp, "#***** AUTO GENERATED DO NOT EDIT *****\n");
   fclose(fp);
 
   remount_root_ro(fs);
