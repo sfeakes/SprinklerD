@@ -1,6 +1,6 @@
 
 [Unit]
-Description=Aqualink RS daemon
+Description=Sprinkler Daemon
 ConditionPathExists=/etc/sprinklerd.conf
 After=network.target multi-user.target
 Requires=network.target
