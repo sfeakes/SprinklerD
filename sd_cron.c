@@ -11,10 +11,10 @@
 
 bool check_delay24h()
 {
-  if (_gpioconfig_.delay24h_time > 0) {
+  if (_sdconfig_.delay24h_time > 0) {
     time_t now;
     time(&now);
-    if (difftime(now, _gpioconfig_.delay24h_time) > DELAY24H_SEC) { // 24hours in seconds
+    if (difftime(now, _sdconfig_.delay24h_time) > 0) { // 24hours in seconds
       enable_delay24h(false);
       return true;
     }
@@ -22,27 +22,45 @@ bool check_delay24h()
   return false; 
 }
 
+void enable_system(bool state)
+{
+  if (_sdconfig_.system != state) {
+    _sdconfig_.eventToUpdateHappened = true;
+    _sdconfig_.system = state;
+    logMessage(LOG_NOTICE, "Turning %s calendar\n",state==true?"on":"off");
+  } else {
+    logMessage(LOG_NOTICE, "Ignore request to turn %s calendar\n",state==true?"on":"off");
+  }
+}
+
 void enable_delay24h(bool state)
 {
-  _gpioconfig_.delay24h = state;
-  if (state) {
-    time(&_gpioconfig_.delay24h_time);
-    logMessage(LOG_INFO, "Turning on rain Delay\n");
+  if (_sdconfig_.delay24h != state) {
+    _sdconfig_.eventToUpdateHappened = true;
+
+    _sdconfig_.delay24h = state;
+    if (state) {
+      time(&_sdconfig_.delay24h_time);
+      _sdconfig_.delay24h_time =  _sdconfig_.delay24h_time + DELAY24H_SEC;
+      logMessage(LOG_NOTICE, "Turning on rain Delay\n");
+    } else {
+      _sdconfig_.delay24h_time = 0;
+      logMessage(LOG_NOTICE, "Turning off rain Delay\n");
+    }
   } else {
-    _gpioconfig_.delay24h_time = 0;
-    logMessage(LOG_INFO, "Turning off rain Delay\n");
+    logMessage(LOG_NOTICE, "Ignore request to turn %s rain Delay\n",state==true?"on":"off");
   }
 }
 
 void check_cron() {
-  if (_gpioconfig_.cron_update > 0) {
+  if (_sdconfig_.cron_update > 0) {
     logMessage(LOG_DEBUG, "Checking if CRON needs to be updated\n");
     time_t now;
     time(&now);
-    if (difftime(now, _gpioconfig_.cron_update) > TIMEDIFF_CRON_UPDATE) {
+    if (difftime(now, _sdconfig_.cron_update) > TIMEDIFF_CRON_UPDATE) {
       logMessage(LOG_INFO, "Updating CRON\n");
       write_cron();
-      _gpioconfig_.cron_update = 0;
+      _sdconfig_.cron_update = 0;
     }
   }
 }
@@ -66,14 +84,14 @@ void write_cron() {
   fprintf(fp, "#***** AUTO GENERATED DO NOT EDIT *****\n");
 
   for (day=0; day <= 6; day++) {
-    if (_gpioconfig_.cron[day].hour >= 0 && _gpioconfig_.cron[day].minute >= 0) {
-      //length += sprintf(buffer+length, ", \"d%d-starttime\" : \"%.2d:%.2d\" ",day,_gpioconfig_.cron[day].hour,_gpioconfig_.cron[day].minute);
-      min = _gpioconfig_.cron[day].minute;
-      hour = _gpioconfig_.cron[day].hour;
-      for (zone=0; zone < _gpioconfig_.zones; zone ++) {
-        if (_gpioconfig_.cron[day].zruntimes[zone] > 0) {
-          fprintf(fp, "%d %d * * %d root /usr/bin/curl -s -o /dev/null 'localhost?type=cron&zone=%d&runtime=%d&state=on'\n",min,hour,day,zone+1,_gpioconfig_.cron[day].zruntimes[zone]);
-          min = min + _gpioconfig_.cron[day].zruntimes[zone];
+    if (_sdconfig_.cron[day].hour >= 0 && _sdconfig_.cron[day].minute >= 0) {
+      //length += sprintf(buffer+length, ", \"d%d-starttime\" : \"%.2d:%.2d\" ",day,_sdconfig_.cron[day].hour,_sdconfig_.cron[day].minute);
+      min = _sdconfig_.cron[day].minute;
+      hour = _sdconfig_.cron[day].hour;
+      for (zone=0; zone < _sdconfig_.zones; zone ++) {
+        if (_sdconfig_.cron[day].zruntimes[zone] > 0) {
+          fprintf(fp, "%d %d * * %d root /usr/bin/curl -s -o /dev/null 'localhost?type=cron&zone=%d&runtime=%d&state=on'\n",min,hour,day,zone+1,_sdconfig_.cron[day].zruntimes[zone]);
+          min = min + _sdconfig_.cron[day].zruntimes[zone];
           // NSF Check if to incrument hour.
           if (min >= 60) {
             min = min-60;
@@ -117,10 +135,10 @@ void read_cron() {
 
   // reset cron config
   for (day=0; day <= 6; day++) {
-    _gpioconfig_.cron[day].hour = -1;
-    _gpioconfig_.cron[day].minute = -1;
-    for (zone=0; zone < _gpioconfig_.zones; zone ++) {
-      _gpioconfig_.cron[day].zruntimes[zone] = 0;
+    _sdconfig_.cron[day].hour = -1;
+    _sdconfig_.cron[day].minute = -1;
+    for (zone=0; zone < _sdconfig_.zones; zone ++) {
+      _sdconfig_.cron[day].zruntimes[zone] = 0;
     }
   }
 
@@ -158,12 +176,12 @@ void read_cron() {
         runtime = str2int((line + groupArray[5].rm_so), (groupArray[5].rm_eo - groupArray[5].rm_so));
         logMessage(LOG_DEBUG, "Read from cron Day %d | Time %d:%d | Zone %d | Runtime %d\n",day,hour,minute,zone,runtime);
 
-        if (day < 7 && zone <= _gpioconfig_.zones) {
-          if (_gpioconfig_.cron[day].hour == -1) { // Only get the first starttime
-            _gpioconfig_.cron[day].hour = hour;
-            _gpioconfig_.cron[day].minute = minute;
+        if (day < 7 && zone <= _sdconfig_.zones) {
+          if (_sdconfig_.cron[day].hour == -1) { // Only get the first starttime
+            _sdconfig_.cron[day].hour = hour;
+            _sdconfig_.cron[day].minute = minute;
           }
-          _gpioconfig_.cron[day].zruntimes[zone-1] = runtime;
+          _sdconfig_.cron[day].zruntimes[zone-1] = runtime;
         }
       }
     } else {
@@ -172,9 +190,9 @@ void read_cron() {
   }
 /*
   for (day=0; day <= 6; day++) {
-    logMessage(LOG_DEBUG, "DAY %d Start time %d:%d\n",day,_gpioconfig_.cron[day].hour,_gpioconfig_.cron[day].minute);
-    for (zone=0; zone < _gpioconfig_.zones; zone ++) {
-      logMessage(LOG_DEBUG, "DAY %d zone %d runtime %d\n",day,zone+1,_gpioconfig_.cron[day].zruntimes[zone]);
+    logMessage(LOG_DEBUG, "DAY %d Start time %d:%d\n",day,_sdconfig_.cron[day].hour,_sdconfig_.cron[day].minute);
+    for (zone=0; zone < _sdconfig_.zones; zone ++) {
+      logMessage(LOG_DEBUG, "DAY %d zone %d runtime %d\n",day,zone+1,_sdconfig_.cron[day].zruntimes[zone]);
     }
   }
 */

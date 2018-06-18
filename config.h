@@ -11,11 +11,12 @@
 
 #define PIN_CFGS 10
 #define MAX_GPIO 25
-#define MQTT_ID_LEN 20
+#define MQTT_ID_LEN 25
 
 #define CFGFILE     "./config.cfg"
 
 #define LABEL_SIZE 40
+#define NON_ZONE_DZIDS 3
 
 struct CALENDARday {
   int hour;
@@ -42,7 +43,12 @@ struct GPIOcfg {
   bool master_valve;
 };
 
-struct GPIOCONTROLcfg {
+struct DZcache {
+  int idx;
+  int status;
+};
+
+struct sprinklerdcfg {
   char socket_port[6];
   char name[20];
   char docroot[512];
@@ -64,7 +70,8 @@ struct GPIOCONTROLcfg {
   bool delay24h;
   long delay24h_time;
   bool master_valve;
-  struct GPIOcfg *gpiocfg;
+  struct DZcache *dz_cache;
+  struct GPIOcfg *zonecfg;
   struct CALENDARday cron[7];
   //time_t cron_update;
   long cron_update;
@@ -76,8 +83,8 @@ struct GPIOCONTROLcfg {
 
 
 
-//struct GPIOcfg _gpioconfig_[NUM_CFGS];
-extern struct GPIOCONTROLcfg _gpioconfig_;
+//struct GPIOcfg _sdconfig_[NUM_CFGS];
+extern struct sprinklerdcfg _sdconfig_;
 //struct HTTPDcfg _httpdconfig_;
 
 void readCfg (char *cfgFile);

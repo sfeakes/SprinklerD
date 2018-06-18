@@ -121,12 +121,12 @@ void logMessage(int level, char *format, ...)
   int size = vsnprintf (&buffer[8], MXPRNT-10, format, args);
   va_end(args);
 
-  //if (_gpioconfig_.log_level < LOG_ERR || _gpioconfig_.log_level > LOG_DEBUG) {
-  if (_gpioconfig_.log_level == -1) {
+  //if (_sdconfig_.log_level < LOG_ERR || _sdconfig_.log_level > LOG_DEBUG) {
+  if (_sdconfig_.log_level == -1) {
     fprintf (stderr, buffer);
     syslog (level, "%s", &buffer[8]);
     closelog ();
-  } else if (level > _gpioconfig_.log_level) {
+  } else if (level > _sdconfig_.log_level) {
     return;
   }
 

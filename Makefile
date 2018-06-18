@@ -1,7 +1,8 @@
 # define the C compiler to use
 CC = gcc
 
-LIBS := -lpthread -lwiringPi -lwiringPiDev -lm
+LIBS := -lwiringPi -lwiringPiDev -lm
+#LIBS := -lpthread -lwiringPi -lwiringPiDev -lm
 #LIBS := -lpthread -lwebsockets
 
 # debug of not
@@ -9,13 +10,15 @@ LIBS := -lpthread -lwiringPi -lwiringPiDev -lm
 $DBG =
 
 # define any compile-time flags
+GCCFLAGS = -Wall
 #CFLAGS = -Wall -lpthread -lwiringPi -lwiringPiDev -lm -I. -I./minIni
-CFLAGS = -Wall -I. -I./minIni $(DBG) $(LIBS) -D MG_DISABLE_MD5 -D MG_DISABLE_HTTP_DIGEST_AUTH -D MG_DISABLE_MD5 -D MG_DISABLE_JSON_RPC
-#CFLAGS = -Wall -g -I./wiringPI
+CFLAGS = $(GCCFLAGS) -I. -I./minIni $(DBG) $(LIBS) -D MG_DISABLE_MD5 -D MG_DISABLE_HTTP_DIGEST_AUTH -D MG_DISABLE_MD5 -D MG_DISABLE_JSON_RPC
+#CFLAGS = -Wextra -Wall -g -I./wiringPI
 
 
 # define the C source files
 SRCS = sprinkler.c utils.c config.c net_services.c json_messages.c zone_ctrl.c sd_cron.c mongoose.c minIni/minIni.c
+TSRC = test.c config.c utils.c minIni/minIni.c
 
 # define the C object files 
 #
@@ -26,9 +29,11 @@ SRCS = sprinkler.c utils.c config.c net_services.c json_messages.c zone_ctrl.c s
 # with the .o suffix
 #
 OBJS = $(SRCS:.c=.o)
+TOBJ = $(TSRC:.c=.o)
 
 # define the executable file 
 MAIN = ./release/sprinklerd
+TEST = ./release/testing
 
 #
 # The following part of the makefile is generic; it can be used to 
@@ -43,6 +48,12 @@ all:    $(MAIN)
 
 $(MAIN): $(OBJS) 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS)
+
+test:    $(TEST)
+  @echo: $(TEST) have been compiled
+
+$(TEST): $(TOBJ)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $(TEST) $(TOBJ) $(LFLAGS) $(LIBS)
   
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
@@ -52,7 +63,7 @@ $(MAIN): $(OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
 
 clean:
-	$(RM) *.o *~ $(MAIN) $(MAIN_U)
+	$(RM) *.o *~ $(MAIN) $(MAIN_U) $(TEST)
 
 depend: $(SRCS)
 	makedepend $(INCLUDES) $^

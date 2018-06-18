@@ -20,11 +20,11 @@ int build_sprinkler_cal_JSON(char* buffer, int size)
   length = length-1;
 
   for (day=0; day <= 6; day++) {
-    if (_gpioconfig_.cron[day].hour >= 0 && _gpioconfig_.cron[day].minute >= 0) {
-      length += sprintf(buffer+length, ", \"d%d-starttime\" : \"%.2d:%.2d\" ",day,_gpioconfig_.cron[day].hour,_gpioconfig_.cron[day].minute);
-      for (zone=0; zone < _gpioconfig_.zones; zone ++) {
-        if (_gpioconfig_.cron[day].zruntimes[zone] >= 0) {
-          length += sprintf(buffer+length, ", \"d%dz%d-runtime\" : %d",day,zone+1,_gpioconfig_.cron[day].zruntimes[zone]);
+    if (_sdconfig_.cron[day].hour >= 0 && _sdconfig_.cron[day].minute >= 0) {
+      length += sprintf(buffer+length, ", \"d%d-starttime\" : \"%.2d:%.2d\" ",day,_sdconfig_.cron[day].hour,_sdconfig_.cron[day].minute);
+      for (zone=0; zone < _sdconfig_.zones; zone ++) {
+        if (_sdconfig_.cron[day].zruntimes[zone] >= 0) {
+          length += sprintf(buffer+length, ", \"d%dz%d-runtime\" : %d",day,zone+1,_sdconfig_.cron[day].zruntimes[zone]);
           //logMessage(LOG_DEBUG, "Zone %d, length %d limit %d\n",zone,length,size);
         }
       }
@@ -43,20 +43,21 @@ int build_sprinkler_JSON(char* buffer, int size)
   memset(&buffer[0], 0, size);
   int length = 0;
 
-  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"system\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"zones\" : \"%d\"", 
-                                    _gpioconfig_.name, _gpioconfig_.system?"on":"off",  
-                                    _gpioconfig_.delay24h?"on":"off", 
-                                    _gpioconfig_.currentZone.type==zcALL?"on":"off", 
-                                    _gpioconfig_.zones);
-      for (i=1; i < _gpioconfig_.pinscfgs ; i++)
+  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"system\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"zones\" : \"%d\", \"24hdelay-offtime\" : %li", 
+                                    _sdconfig_.name, _sdconfig_.system?"on":"off",  
+                                    _sdconfig_.delay24h?"on":"off", 
+                                    _sdconfig_.currentZone.type==zcALL?"on":"off", 
+                                    _sdconfig_.zones,
+                                    _sdconfig_.delay24h_time);
+      for (i=1; i < _sdconfig_.pinscfgs ; i++)
       {
         length += sprintf(buffer+length,  ", \"z%d\" : \"%s\", \"z%d-runtime\" : %d, \"z%d-name\" : \"%s\" ", 
-                   _gpioconfig_.gpiocfg[i].zone, 
-                  (digitalRead(_gpioconfig_.gpiocfg[i].pin)==_gpioconfig_.gpiocfg[i].on_state?"on":"off"),
-                   _gpioconfig_.gpiocfg[i].zone,
-                   _gpioconfig_.gpiocfg[i].default_runtime,
-                   _gpioconfig_.gpiocfg[i].zone,
-                   _gpioconfig_.gpiocfg[i].name);
+                   _sdconfig_.zonecfg[i].zone, 
+                  (digitalRead(_sdconfig_.zonecfg[i].pin)==_sdconfig_.zonecfg[i].on_state?"on":"off"),
+                   _sdconfig_.zonecfg[i].zone,
+                   _sdconfig_.zonecfg[i].default_runtime,
+                   _sdconfig_.zonecfg[i].zone,
+                   _sdconfig_.zonecfg[i].name);
       }
       length += sprintf(buffer+length, "}");
 

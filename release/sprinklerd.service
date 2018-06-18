@@ -13,7 +13,7 @@ PIDFile=/run/sprinklerd.pid
 EnvironmentFile=/etc/default/sprinklerd
 ExecStart=/usr/local/bin/sprinklerd $OPTS
 ExecReload=/bin/kill -HUP $MAINPID
-#Restart=on-failure
+Restart=on-failure
 KillMode=process
 RestartSec=2
 

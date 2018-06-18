@@ -316,7 +316,7 @@
                   document.getElementById('title').innerHTML = data[obj];
                 } else if (obj == '24hdelay-offtime') {
                   if (data[obj] > 0) {
-                    dt = new Date(data[obj]);
+                    dt = new Date(data[obj] * 1000);
                     var options = { weekday: "short", hour: "2-digit", minute: "2-digit"};
                     document.getElementById('24hdelay-offtime').innerHTML = '(until '+dt.toLocaleTimeString("en-us", options)+')';
                   } else {

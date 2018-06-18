@@ -73,6 +73,53 @@ bool mac(char *buf, int len)
   return false;
 }
 
+// Return true if added or changed value, false if same.
+bool update_dz_cache(int dzidx, int value) {
+  int i;
+
+  for(i=0; i < _sdconfig_.zones + NON_ZONE_DZIDS; i++)
+  {
+    if (_sdconfig_.dz_cache[i].idx == dzidx) {
+      if (_sdconfig_.dz_cache[i].status == value) {
+        //logMessage(LOG_DEBUG, "No change dzcache idx=%d %d\n", dzidx, value);
+        return false;
+      } else {
+        _sdconfig_.dz_cache[i].status = value;
+        //logMessage(LOG_DEBUG, "Updated dzcache idx=%d %d\n", dzidx, value);
+        return true;
+      }
+    }
+  }
+  // if we got here, there is no cache value, so create one.
+  for(i=0; i < _sdconfig_.zones + NON_ZONE_DZIDS; i++)
+  {
+    //logMessage(LOG_DEBUG, "dzcache index %d idx=%d %d\n",i, _sdconfig_.dz_cache[i].idx, _sdconfig_.dz_cache[i].status);
+    if (_sdconfig_.dz_cache[i].idx == 0) {
+      _sdconfig_.dz_cache[i].idx = dzidx;
+      _sdconfig_.dz_cache[i].status = value;
+      //logMessage(LOG_DEBUG, "Added dzcache idx=%d %d\n", dzidx, value);
+      return true;
+    }
+  }
+
+  logMessage(LOG_ERR, "didn't find or create dzcache value idx=%d %d\n", dzidx, value);
+  return true;
+}
+
+bool check_dz_cache(int idx, int value) {
+  int i;
+  for(i=0; i < _sdconfig_.zones + NON_ZONE_DZIDS; i++)
+  {
+    if (_sdconfig_.dz_cache[i].idx == idx) {
+      if (_sdconfig_.dz_cache[i].status == value)
+        return true;
+      else
+        return false;
+    }
+  }
+  return false;
+}
+
 void urldecode(char *dst, const char *src)
 {
   char a, b;
@@ -145,15 +192,17 @@ void publish_zone_mqtt(struct mg_connection *nc, struct GPIOcfg *gpiopin) {
   static char mqtt_topic[250];
   static char mqtt_msg[50];
 
-  if (_gpioconfig_.enableMQTTaq == true) {
-    // sprintf(mqtt_topic, "%s/%s", _gpioconfig_.mqtt_topic, gpiopin->name);
-    sprintf(mqtt_topic, "%s/zone/%d", _gpioconfig_.mqtt_topic, gpiopin->zone);
+  if (_sdconfig_.enableMQTTaq == true) {
+    // sprintf(mqtt_topic, "%s/%s", _sdconfig_.mqtt_topic, gpiopin->name);
+    sprintf(mqtt_topic, "%s/zone/%d", _sdconfig_.mqtt_topic, gpiopin->zone);
     sprintf(mqtt_msg, "%s", (digitalRead(gpiopin->pin) == gpiopin->on_state ? MQTT_ON : MQTT_OFF));
     send_mqtt_msg(nc, mqtt_topic, mqtt_msg);
   }
-  if (gpiopin->dz_idx > 0 && _gpioconfig_.enableMQTTdz == true) {
-    build_dz_mqtt_status_JSON(mqtt_msg, 50, gpiopin->dz_idx, (digitalRead(gpiopin->pin) == gpiopin->on_state ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
-    send_mqtt_msg(nc, _gpioconfig_.mqtt_dz_pub_topic, mqtt_msg);
+  if (gpiopin->dz_idx > 0 && _sdconfig_.enableMQTTdz == true) {
+    if ( update_dz_cache(gpiopin->dz_idx,(digitalRead(gpiopin->pin) == gpiopin->on_state ? DZ_ON : DZ_OFF) ) ) {
+      build_dz_mqtt_status_JSON(mqtt_msg, 50, gpiopin->dz_idx, (digitalRead(gpiopin->pin) == gpiopin->on_state ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
+      send_mqtt_msg(nc, _sdconfig_.mqtt_dz_pub_topic, mqtt_msg);
+    }
   }
 }
 
@@ -187,27 +236,43 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
   static char mqtt_msg[50];
 
   for (c = mg_next(nc->mgr, NULL); c != NULL; c = mg_next(nc->mgr, c)) {
-    for (i=1; i <= _gpioconfig_.zones ; i++)
+    for (i=1; i <= _sdconfig_.zones ; i++)
     {
       if (is_websocket(c)) {
         //ws_send(c, data);
         logMessage(LOG_ERR, "Hit part of code that's not complete  - broadcast_gpiopinstate() - websocket\n"); 
       } else if (is_mqtt(c)) {
-        publish_zone_mqtt(c, &_gpioconfig_.gpiocfg[i]);
+        publish_zone_mqtt(c, &_sdconfig_.zonecfg[i]);
       }
     }
-    if (_gpioconfig_.enableMQTTaq == true) {
-      sprintf(mqtt_topic, "%s/system", _gpioconfig_.mqtt_topic);
-      sprintf(mqtt_msg, "%s", (_gpioconfig_.system?MQTT_ON:MQTT_OFF) );
+    if (is_mqtt(c)) {
+     if (_sdconfig_.enableMQTTaq == true) {
+      sprintf(mqtt_topic, "%s/system", _sdconfig_.mqtt_topic);
+      sprintf(mqtt_msg, "%s", (_sdconfig_.system?MQTT_ON:MQTT_OFF) );
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
-      sprintf(mqtt_topic, "%s/24hdelay", _gpioconfig_.mqtt_topic);
-      sprintf(mqtt_msg, "%s", (_gpioconfig_.delay24h?MQTT_ON:MQTT_OFF) );
+      sprintf(mqtt_topic, "%s/24hdelay", _sdconfig_.mqtt_topic);
+      sprintf(mqtt_msg, "%s", (_sdconfig_.delay24h?MQTT_ON:MQTT_OFF) );
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
-      sprintf(mqtt_topic, "%s/cycleallzones", _gpioconfig_.mqtt_topic);
-      sprintf(mqtt_msg, "%s", (_gpioconfig_.currentZone.type==zcALL?MQTT_ON:MQTT_OFF) );
+      sprintf(mqtt_topic, "%s/cycleallzones", _sdconfig_.mqtt_topic);
+      sprintf(mqtt_msg, "%s", (_sdconfig_.currentZone.type==zcALL?MQTT_ON:MQTT_OFF) );
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+     }
+     if (_sdconfig_.enableMQTTdz == true) {
+      if (_sdconfig_.dzidx_system > 0 && update_dz_cache(_sdconfig_.dzidx_system,(_sdconfig_.system==true ? DZ_ON : DZ_OFF) )) {
+        build_dz_mqtt_status_JSON(mqtt_msg, 50, _sdconfig_.dzidx_system, (_sdconfig_.system==true ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
+        send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_msg);
+        send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_msg);
+      }
+      if (_sdconfig_.dzidx_24hdelay > 0 && update_dz_cache(_sdconfig_.dzidx_24hdelay,(_sdconfig_.delay24h==true ? DZ_ON : DZ_OFF) )) {
+        build_dz_mqtt_status_JSON(mqtt_msg, 50, _sdconfig_.dzidx_24hdelay, (_sdconfig_.delay24h==true ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
+        send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_msg);
+      }
+      if (_sdconfig_.dzidx_allzones > 0 && update_dz_cache(_sdconfig_.dzidx_allzones,(_sdconfig_.currentZone.type==zcALL ? DZ_ON : DZ_OFF) )) {
+        build_dz_mqtt_status_JSON(mqtt_msg, 50, _sdconfig_.dzidx_allzones, (_sdconfig_.currentZone.type==zcALL ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
+        send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_msg);
+      }
+     }
     }
-    // NSF Need to publish to domoticz
   }
   return;
 }
@@ -268,10 +333,13 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
       mg_get_http_var(&http_msg->query_string, "option", buf, buflen);
       if (strncasecmp(buf, "system", 6) == 0 ) {
         mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
+        enable_system(is_value_ON(buf));
+        /*
         if ( is_value_ON(buf) )
-          _gpioconfig_.system = true;
+          _sdconfig_.system = true;
          else
-          _gpioconfig_.system = false;
+          _sdconfig_.system = false;
+        */
         length = build_sprinkler_JSON(buffer, size);
       } else if (strncasecmp(buf, "24hdelay", 8) == 0 ) {
         mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
@@ -298,16 +366,16 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
       mg_get_http_var(&http_msg->query_string, "runtime", buf, buflen);
       runtime = atoi(buf);
       mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
-      //if ( (strncasecmp(buf, "off", 3) == 0 || strncmp(buf, "0", 1) == 0) && zone <= _gpioconfig_.zones) {
-      if ( is_value_ON(buf) == true && zone <= _gpioconfig_.zones) {
+      //if ( (strncasecmp(buf, "off", 3) == 0 || strncmp(buf, "0", 1) == 0) && zone <= _sdconfig_.zones) {
+      if ( is_value_ON(buf) == true && zone <= _sdconfig_.zones) {
         zc_zone(type, zone, zcON, runtime);
         length = build_sprinkler_JSON(buffer, size);
-      //} else if ( (strncasecmp(buf, "on", 2) == 0 || strncmp(buf, "1", 1) == 0) && zone <= _gpioconfig_.zones) {
-      } else if ( is_value_ON(buf) == false && zone <= _gpioconfig_.zones) {
+      //} else if ( (strncasecmp(buf, "on", 2) == 0 || strncmp(buf, "1", 1) == 0) && zone <= _sdconfig_.zones) {
+      } else if ( is_value_ON(buf) == false && zone <= _sdconfig_.zones) {
         zc_zone(type, zone, zcOFF, runtime);
         length = build_sprinkler_JSON(buffer, size);
       } else {
-        if (zone > _gpioconfig_.zones) {
+        if (zone > _sdconfig_.zones) {
           logMessage(LOG_WARNING, "Bad request unknown zone %d\n",zone);
           length = sprintf(buffer,  "{ \"error\": \"Bad request unknown zone %d\"}", zone);
         } else {
@@ -321,8 +389,8 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
       zone = atoi(buf);
       mg_get_http_var(&http_msg->query_string, "time", buf, buflen);
       runtime = atoi(buf);
-      if (zone > 0 && zone <= _gpioconfig_.zones && runtime > 0) {
-        _gpioconfig_.gpiocfg[zone].default_runtime = runtime;
+      if (zone > 0 && zone <= _sdconfig_.zones && runtime > 0) {
+        _sdconfig_.zonecfg[zone].default_runtime = runtime;
         logMessage(LOG_DEBUG, "changed default runtime on zone %d, to %d\n",zone, runtime);
         length = build_sprinkler_JSON(buffer, size);
       } else
@@ -335,20 +403,20 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
     mg_get_http_var(&http_msg->query_string, "time", buf, buflen);
     runtime = atoi(buf);
     if (day >= 0 && day <= 6 && zone > 0 && time > 0) {  // zone runtime
-      if (zone <= _gpioconfig_.zones)
-        _gpioconfig_.cron[day].zruntimes[zone-1] = runtime;
+      if (zone <= _sdconfig_.zones)
+        _sdconfig_.cron[day].zruntimes[zone-1] = runtime;
       else
         length = sprintf(buffer,  "{ \"error\": \"bad zone calendar config request\"}");
     } else if (day >= 0 && day <= 6 && strlen(buf) > 0) { // add day to schedule
-      _gpioconfig_.cron[day].hour = str2int(buf, 2);
-      _gpioconfig_.cron[day].minute = str2int(&buf[3], 2);;
+      _sdconfig_.cron[day].hour = str2int(buf, 2);
+      _sdconfig_.cron[day].minute = str2int(&buf[3], 2);;
     } else if (day >= 0 && day <= 6) { // remove day from schedule
-      _gpioconfig_.cron[day].hour = -1;
-      _gpioconfig_.cron[day].minute = -1;
+      _sdconfig_.cron[day].hour = -1;
+      _sdconfig_.cron[day].minute = -1;
     } else {
       length = sprintf(buffer,  "{ \"error\": \"bad calendar config request\"}");
     }
-    time(&_gpioconfig_.cron_update);
+    time(&_sdconfig_.cron_update);
     length = build_sprinkler_cal_JSON(buffer, size);
   } else {
       length += sprintf(buffer,  "{ \"error\": \"unknown request\"}");
@@ -364,7 +432,7 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
 #define CT_JSON "Content-Type: application/json"
 
 void action_web_request(struct mg_connection *nc, struct http_message *http_msg){
-  int bufsize = 1024 + (200 * _gpioconfig_.zones);
+  int bufsize = 1024 + (200 * _sdconfig_.zones);
   char buf[bufsize];
   char *c_type;
   int size = 0;
@@ -386,7 +454,8 @@ void action_web_request(struct mg_connection *nc, struct http_message *http_msg)
       //logMessage (LOG_DEBUG, "Web Return %d = '%.*s'\n",size, size, buf);
     
     if (changedOption)
-      broadcast_sprinklerdstate(nc);
+      _sdconfig_.eventToUpdateHappened = true;
+      //broadcast_sprinklerdstate(nc);
 
     return;
   }
@@ -394,7 +463,7 @@ void action_web_request(struct mg_connection *nc, struct http_message *http_msg)
   struct mg_serve_http_opts opts;
 
   memset(&opts, 0, sizeof(opts)); // Reset all options to defaults
-  opts.document_root = _gpioconfig_.docroot; // Serve files from the current directory
+  opts.document_root = _sdconfig_.docroot; // Serve files from the current directory
     // logMessage (LOG_DEBUG, "Doc root=%s\n",opts.document_root);
   mg_serve_http(nc, http_msg, opts);
 }
@@ -411,20 +480,27 @@ void action_domoticz_mqtt_message(struct mg_connection *nc, struct mg_mqtt_messa
   char svalue[DZ_SVALUE_LEN];
 
   if (parseJSONmqttrequest(msg->payload.p, msg->payload.len, &idx, &nvalue, svalue)) {
-    if (idx == _gpioconfig_.dzidx_system)
-      _gpioconfig_.system=(nvalue==DZ_ON?true:false);
-    else if (idx == _gpioconfig_.dzidx_24hdelay)
+    if (check_dz_cache(idx, nvalue))
+      return;
+    if (idx == _sdconfig_.dzidx_system) {
+      //_sdconfig_.system=(nvalue==DZ_ON?true:false);
+      enable_system(nvalue==DZ_ON?true:false);
+      //_sdconfig_.eventToUpdateHappened = true;
+      logMessage(LOG_INFO, "Domoticz MQTT request to turn %s system",(nvalue==DZ_ON?"ON":"OFF"));
+    } else if (idx == _sdconfig_.dzidx_24hdelay) {
       enable_delay24h((nvalue==DZ_ON?true:false));
-    else if (idx == _gpioconfig_.dzidx_allzones)
+      logMessage(LOG_INFO, "Domoticz MQTT request to turn %s 24hDelay",(nvalue==DZ_ON?"ON":"OFF"));
+    } else if (idx == _sdconfig_.dzidx_allzones) {
       zc_zone(zcALL, 0, (nvalue==DZ_ON?zcON:zcOFF), 0);
-    else {
-     for (i=0; i < _gpioconfig_.pinscfgs ; i++)
+      logMessage(LOG_INFO, "Domoticz MQTT request to turn %s cycle all zones",(nvalue==DZ_ON?"ON":"OFF"));
+    } else {
+     for (i=1; i <= _sdconfig_.zones ; i++)
      {
-      if ( _gpioconfig_.gpiocfg[i].dz_idx == idx ) {
-        logMessage(LOG_INFO, "Domoticz MQT id %d matched Pin %d %s\n",idx, _gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].name);
+      if ( _sdconfig_.zonecfg[i].dz_idx == idx ) {
+        logMessage(LOG_INFO, "Domoticz MQT id %d matched Zone %d %s\n",idx, _sdconfig_.zonecfg[i].zone, _sdconfig_.zonecfg[i].name);
         if ( nvalue == DZ_ON || nvalue == DZ_OFF) {
-          zc_zone(zcSINGLE, _gpioconfig_.gpiocfg[i].zone, (nvalue==DZ_ON?zcON:zcOFF), 0);
-          logMessage(LOG_DEBUG, "Domoticz MQT: Turn zone %d %s\n",_gpioconfig_.gpiocfg[i].zone, nvalue==DZ_ON?"ON":"OFF");
+          zc_zone(zcSINGLE, _sdconfig_.zonecfg[i].zone, (nvalue==DZ_ON?zcON:zcOFF), 0);
+          logMessage(LOG_DEBUG, "Domoticz MQT: Turn zone %d %s\n",_sdconfig_.zonecfg[i].zone, nvalue==DZ_ON?"ON":"OFF");
         } else {
           logMessage(LOG_WARNING, "Domoticz MQT id %d, unknown state to set %d\n",idx,nvalue);
         }
@@ -438,12 +514,12 @@ void action_domoticz_mqtt_message(struct mg_connection *nc, struct mg_mqtt_messa
 void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
   //logMessage(LOG_INFO, "action_mqtt_message\n");
   int i;
-  //char *pt1 = (char *)&msg->topic.p[strlen(_gpioconfig_.mqtt_topic)+1];
+  //char *pt1 = (char *)&msg->topic.p[strlen(_sdconfig_.mqtt_topic)+1];
   char *pt2 = NULL;
   char *pt3 = NULL;
   char *pt4 = NULL;
 
-  // NSF change 10 to strlen(_gpioconfig_.mqtt_topic)+1   **** BUT TEST.***
+  // NSF change 10 to strlen(_sdconfig_.mqtt_topic)+1   **** BUT TEST.***
   for (i=10; i < msg->topic.len; i++) {
     if ( msg->topic.p[i] == '/' ) {
       if (pt2 == NULL) {
@@ -472,11 +548,11 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
     status = zcON;
   }
 
-  logMessage(LOG_INFO, "MQTT: topic %.*s %.*s\n",msg->topic.len, msg->topic.p, msg->payload.len, msg->payload.p);
+  logMessage(LOG_DEBUG, "MQTT: topic %.*s %.*s\n",msg->topic.len, msg->topic.p, msg->payload.len, msg->payload.p);
 
   if (pt2 != NULL && pt3 != NULL && pt4 != NULL && strncmp(pt2, "zone", 4) == 0 && strncmp(pt4, "set", 3) == 0 ) {
     int zone = atoi(pt3);
-    if (zone > 0 && zone <= _gpioconfig_.zones) {
+    if (zone > 0 && zone <= _sdconfig_.zones) {
       zc_zone(zcSINGLE, zone, status, 0);
       logMessage(LOG_DEBUG, "MQTT: Turn zone %d %s\n",zone, status==zcON?"ON":"OFF");
     } else {
@@ -486,7 +562,8 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
     enable_delay24h(status==zcON?true:false);
     logMessage(LOG_DEBUG, "MQTT: Enable 24 hour delay %s\n",status==zcON?"YES":"NO");
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "system", 6) == 0 && strncmp(pt3, "set", 3) == 0 ) {
-    _gpioconfig_.system=status==zcON?true:false;
+    //_sdconfig_.system=status==zcON?true:false;
+    enable_system(status==zcON?true:false);
     logMessage(LOG_DEBUG, "MQTT: Turning System %s\n",status==zcON?"ON":"OFF");
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "cycleallzones", 13) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     zc_zone(zcALL, 0, status, 0);
@@ -510,18 +587,18 @@ static void ev_handler(struct mg_connection *nc, int ev, void *p) {
   switch (ev) {
   case MG_EV_CONNECT: {
     set_mqtt(nc);
-    if (_gpioconfig_.mqtt_topic != NULL || _gpioconfig_.mqtt_dz_sub_topic != NULL) {
+    if (_sdconfig_.mqtt_topic != NULL || _sdconfig_.mqtt_dz_sub_topic != NULL) {
       struct mg_send_mqtt_handshake_opts opts;
       memset(&opts, 0, sizeof(opts));
-      opts.user_name = _gpioconfig_.mqtt_user;
-      opts.password = _gpioconfig_.mqtt_passwd;
+      opts.user_name = _sdconfig_.mqtt_user;
+      opts.password = _sdconfig_.mqtt_passwd;
       opts.keep_alive = 5;
       // opts.flags = 0x00;
       // opts.flags |= MG_MQTT_WILL_RETAIN;
       opts.flags |= MG_MQTT_CLEAN_SESSION; // NFS Need to readup on this
       mg_set_protocol_mqtt(nc);
-      mg_send_mqtt_handshake_opt(nc, _gpioconfig_.mqtt_ID, opts);
-      logMessage(LOG_INFO, "Connected to mqtt %s with id of: %s\n", _gpioconfig_.mqtt_address, _gpioconfig_.mqtt_ID);
+      mg_send_mqtt_handshake_opt(nc, _sdconfig_.mqtt_ID, opts);
+      logMessage(LOG_INFO, "Connected to mqtt %s with id of: %s\n", _sdconfig_.mqtt_address, _sdconfig_.mqtt_ID);
       _mqtt_status = mqttrunning;
       _mqtt_connection = nc;
     }
@@ -540,25 +617,25 @@ static void ev_handler(struct mg_connection *nc, int ev, void *p) {
     char gp_topic[30];
     struct mg_mqtt_topic_expression topics[2];
     int qos = 0; // can't be bothered with ack, so set to 0
-    snprintf(gp_topic, 29, "%s/#", _gpioconfig_.mqtt_topic);
-    if (_gpioconfig_.enableMQTTaq == true && _gpioconfig_.enableMQTTdz == true) {
+    snprintf(gp_topic, 29, "%s/#", _sdconfig_.mqtt_topic);
+    if (_sdconfig_.enableMQTTaq == true && _sdconfig_.enableMQTTdz == true) {
       topics[0].topic = gp_topic;
       topics[0].qos = qos;
-      topics[1].topic = _gpioconfig_.mqtt_dz_sub_topic;
+      topics[1].topic = _sdconfig_.mqtt_dz_sub_topic;
       topics[1].qos = qos;
       mg_mqtt_subscribe(nc, topics, 2, 42);
       logMessage(LOG_INFO, "MQTT: Subscribing to '%s'\n", gp_topic);
-      logMessage(LOG_INFO, "MQTT: Subscribing to '%s'\n", _gpioconfig_.mqtt_dz_sub_topic);
-    } else if (_gpioconfig_.enableMQTTaq == true) {
+      logMessage(LOG_INFO, "MQTT: Subscribing to '%s'\n", _sdconfig_.mqtt_dz_sub_topic);
+    } else if (_sdconfig_.enableMQTTaq == true) {
       topics[0].topic = gp_topic;
       topics[0].qos = qos;
       mg_mqtt_subscribe(nc, topics, 1, 42);
       logMessage(LOG_INFO, "MQTT: Subscribing to '%s'\n", gp_topic);
-    } else if (_gpioconfig_.enableMQTTdz == true) {
-      topics[0].topic = _gpioconfig_.mqtt_dz_sub_topic;
+    } else if (_sdconfig_.enableMQTTdz == true) {
+      topics[0].topic = _sdconfig_.mqtt_dz_sub_topic;
       topics[0].qos = qos;
       mg_mqtt_subscribe(nc, topics, 1, 42);
-      logMessage(LOG_INFO, "MQTT: Subscribing to '%s'\n", _gpioconfig_.mqtt_dz_sub_topic);
+      logMessage(LOG_INFO, "MQTT: Subscribing to '%s'\n", _sdconfig_.mqtt_dz_sub_topic);
     }
     broadcast_sprinklerdstate(nc);
     break;
@@ -612,10 +689,10 @@ static void ev_handler(struct mg_connection *nc, int ev, void *p) {
       break;
     }
     // action_mqtt_message(nc, mqtt_msg);
-    if (_gpioconfig_.enableMQTTaq && strncmp(mqtt_msg->topic.p, _gpioconfig_.mqtt_topic, strlen(_gpioconfig_.mqtt_topic)) == 0) {
+    if (_sdconfig_.enableMQTTaq && strncmp(mqtt_msg->topic.p, _sdconfig_.mqtt_topic, strlen(_sdconfig_.mqtt_topic)) == 0) {
       action_mqtt_message(nc, mqtt_msg);
     }
-    if (_gpioconfig_.enableMQTTdz && strncmp(mqtt_msg->topic.p, _gpioconfig_.mqtt_dz_sub_topic, strlen(_gpioconfig_.mqtt_dz_sub_topic)) == 0) {
+    if (_sdconfig_.enableMQTTdz && strncmp(mqtt_msg->topic.p, _sdconfig_.mqtt_dz_sub_topic, strlen(_sdconfig_.mqtt_dz_sub_topic)) == 0) {
       action_domoticz_mqtt_message(nc, mqtt_msg);
     }
 
@@ -638,23 +715,23 @@ bool check_net_services(struct mg_mgr *mgr) {
 
 void start_mqtt(struct mg_mgr *mgr) {
 
-  //if (_gpioconfig_.enableMQTT == false) {
-  if( _gpioconfig_.enableMQTTaq == false && _gpioconfig_.enableMQTTdz == false ) {
+  //if (_sdconfig_.enableMQTT == false) {
+  if( _sdconfig_.enableMQTTaq == false && _sdconfig_.enableMQTTdz == false ) {
     logMessage (LOG_NOTICE, "MQTT client is disabled, not stating\n");
     _mqtt_status = mqttdisabled;
     return;
   }
 
-  //generate_mqtt_id(_gpioconfig_.mqtt_ID, sizeof(_gpioconfig_.mqtt_ID)-1);
-  if (strlen(_gpioconfig_.mqtt_ID) < 1) {
-    logMessage (LOG_DEBUG, "MQTTaq %d | MQTTdz %d\n", _gpioconfig_.enableMQTTaq, _gpioconfig_.enableMQTTdz);
-    generate_mqtt_id(_gpioconfig_.mqtt_ID, MQTT_ID_LEN-1);
-    logMessage (LOG_DEBUG, "MQTTaq %d | MQTTdz %d\n", _gpioconfig_.enableMQTTaq, _gpioconfig_.enableMQTTdz);
+  //generate_mqtt_id(_sdconfig_.mqtt_ID, sizeof(_sdconfig_.mqtt_ID)-1);
+  if (strlen(_sdconfig_.mqtt_ID) < 1) {
+    logMessage (LOG_DEBUG, "MQTTaq %d | MQTTdz %d\n", _sdconfig_.enableMQTTaq, _sdconfig_.enableMQTTdz);
+    generate_mqtt_id(_sdconfig_.mqtt_ID, MQTT_ID_LEN-1);
+    logMessage (LOG_DEBUG, "MQTTaq %d | MQTTdz %d\n", _sdconfig_.enableMQTTaq, _sdconfig_.enableMQTTdz);
   }
 
-  logMessage (LOG_NOTICE, "Starting MQTT client to %s\n", _gpioconfig_.mqtt_address);
-  if (mg_connect(mgr, _gpioconfig_.mqtt_address, ev_handler) == NULL) {
-      logMessage (LOG_ERR, "Failed to create MQTT listener to %s\n", _gpioconfig_.mqtt_address);
+  logMessage (LOG_NOTICE, "Starting MQTT client to %s\n", _sdconfig_.mqtt_address);
+  if (mg_connect(mgr, _sdconfig_.mqtt_address, ev_handler) == NULL) {
+      logMessage (LOG_ERR, "Failed to create MQTT listener to %s\n", _sdconfig_.mqtt_address);
   } else {
     /* NSF NEED TO PASS GPIO STATE HERE
     int i;
@@ -671,8 +748,8 @@ bool start_net_services(struct mg_mgr *mgr) {
   struct mg_connection *nc;
 
   mg_mgr_init(mgr, NULL);
-  logMessage (LOG_NOTICE, "Starting web server on port %s\n", _gpioconfig_.socket_port);
-  nc = mg_bind(mgr, _gpioconfig_.socket_port, ev_handler);
+  logMessage (LOG_NOTICE, "Starting web server on port %s\n", _sdconfig_.socket_port);
+  nc = mg_bind(mgr, _sdconfig_.socket_port, ev_handler);
   if (nc == NULL) {
     logMessage (LOG_ERR, "Failed to create listener\n");
     return false;

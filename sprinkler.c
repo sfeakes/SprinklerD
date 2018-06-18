@@ -1,20 +1,10 @@
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
 #include <string.h>
 #include <signal.h>
 #include <libgen.h>
-#include <netinet/in.h>
 #include <time.h>
-#include <pthread.h>
-#include <arpa/inet.h> //inet_addr
 #include <stdbool.h>
-//#include <sys/socket.h>
-//#include <netdb.h>
 // We want a success/failure return value from 'wiringPiSetup()'
 #define WIRINGPI_CODES      1
 #include <wiringPi.h>
@@ -24,6 +14,7 @@
 #include "config.h"
 #include "net_services.h"
 #include "sd_cron.h"
+#include "version.h"
 
 //#define PIDFILE     "/var/run/fha_daemon.pid"
 #define PIDLOCATION "/var/run/"
@@ -39,25 +30,45 @@ void main_loop (void);
 void event_trigger (struct GPIOcfg *);
 void intHandler(int signum);
 
-//extern _gpioconfig_;
+//extern _sdconfig_;
 
-/* BS functions due to limitations in wiringpi */
-void event_trigger_0 (void) { event_trigger (&_gpioconfig_.gpiocfg[0]) ; }
-void event_trigger_1 (void) { event_trigger (&_gpioconfig_.gpiocfg[1]) ; }
-void event_trigger_2 (void) { event_trigger (&_gpioconfig_.gpiocfg[2]) ; }
-void event_trigger_3 (void) { event_trigger (&_gpioconfig_.gpiocfg[3]) ; }
-void event_trigger_4 (void) { event_trigger (&_gpioconfig_.gpiocfg[4]) ; }
-void event_trigger_5 (void) { event_trigger (&_gpioconfig_.gpiocfg[5]) ; }
-void event_trigger_6 (void) { event_trigger (&_gpioconfig_.gpiocfg[6]) ; }
-void event_trigger_7 (void) { event_trigger (&_gpioconfig_.gpiocfg[7]) ; }
-void event_trigger_8 (void) { event_trigger (&_gpioconfig_.gpiocfg[8]) ; }
-void event_trigger_9 (void) { event_trigger (&_gpioconfig_.gpiocfg[9]) ; }
+/* BS functions due to limitations in wiringpi of not supporting a pointer in callback event */
+// Let's hope no one wants mroe than 24 zones
+void event_trigger_0 (void) { event_trigger (&_sdconfig_.zonecfg[0]) ; }
+void event_trigger_1 (void) { event_trigger (&_sdconfig_.zonecfg[1]) ; }
+void event_trigger_2 (void) { event_trigger (&_sdconfig_.zonecfg[2]) ; }
+void event_trigger_3 (void) { event_trigger (&_sdconfig_.zonecfg[3]) ; }
+void event_trigger_4 (void) { event_trigger (&_sdconfig_.zonecfg[4]) ; }
+void event_trigger_5 (void) { event_trigger (&_sdconfig_.zonecfg[5]) ; }
+void event_trigger_6 (void) { event_trigger (&_sdconfig_.zonecfg[6]) ; }
+void event_trigger_7 (void) { event_trigger (&_sdconfig_.zonecfg[7]) ; }
+void event_trigger_8 (void) { event_trigger (&_sdconfig_.zonecfg[8]) ; }
+void event_trigger_9 (void) { event_trigger (&_sdconfig_.zonecfg[9]) ; }
+void event_trigger_10 (void) { event_trigger (&_sdconfig_.zonecfg[10]) ; }
+void event_trigger_11 (void) { event_trigger (&_sdconfig_.zonecfg[11]) ; }
+void event_trigger_12 (void) { event_trigger (&_sdconfig_.zonecfg[12]) ; }
+void event_trigger_13 (void) { event_trigger (&_sdconfig_.zonecfg[13]) ; }
+void event_trigger_14 (void) { event_trigger (&_sdconfig_.zonecfg[14]) ; }
+void event_trigger_15 (void) { event_trigger (&_sdconfig_.zonecfg[15]) ; }
+void event_trigger_16 (void) { event_trigger (&_sdconfig_.zonecfg[16]) ; }
+void event_trigger_17 (void) { event_trigger (&_sdconfig_.zonecfg[17]) ; }
+void event_trigger_18 (void) { event_trigger (&_sdconfig_.zonecfg[18]) ; }
+void event_trigger_19 (void) { event_trigger (&_sdconfig_.zonecfg[19]) ; }
+void event_trigger_20 (void) { event_trigger (&_sdconfig_.zonecfg[20]) ; }
+void event_trigger_21 (void) { event_trigger (&_sdconfig_.zonecfg[21]) ; }
+void event_trigger_22 (void) { event_trigger (&_sdconfig_.zonecfg[22]) ; }
+void event_trigger_23 (void) { event_trigger (&_sdconfig_.zonecfg[23]) ; }
+
 
 typedef void (*FunctionCallback)();
 FunctionCallback callbackFunctions[] = {&event_trigger_0, &event_trigger_1, &event_trigger_2, 
                                         &event_trigger_3, &event_trigger_4, &event_trigger_5, 
                                         &event_trigger_6, &event_trigger_7, &event_trigger_8, 
-                                        &event_trigger_9};
+                                        &event_trigger_9, &event_trigger_10, &event_trigger_11,
+                                        &event_trigger_12, &event_trigger_13, &event_trigger_14,
+                                        &event_trigger_15, &event_trigger_16, &event_trigger_17,
+                                        &event_trigger_18, &event_trigger_19, &event_trigger_20,
+                                        &event_trigger_21, &event_trigger_22, &event_trigger_23};
 
 static int server_sock = -1;
  
@@ -87,7 +98,7 @@ int main (int argc, char *argv[])
   bool debuglog = false;
   // Default daemon to true to logging works correctly before we even start deamon process.
   _daemon_ = true;
-  //_gpioconfig_.port = HTTPD_PORT;
+  //_sdconfig_.port = HTTPD_PORT;
 
   for (i = 1; i < argc; i++)
   {
@@ -117,26 +128,27 @@ int main (int argc, char *argv[])
   }
   
   if (debuglog)
-    _gpioconfig_.log_level = LOG_DEBUG;
+    _sdconfig_.log_level = LOG_DEBUG;
   else
-    _gpioconfig_.log_level = LOG_INFO;
+    _sdconfig_.log_level = LOG_INFO;
 
   readCfg(cfg);
 
-  _gpioconfig_.system = true;
-  _gpioconfig_.currentZone.type = zcNONE;
-  _gpioconfig_.cron_update = 0;
-  _gpioconfig_.eventToUpdateHappened = false;
+  logMessage(LOG_NOTICE,"Starting %s version %s\n",argv[0],SD_VERSION);
+
+  _sdconfig_.system = true;
+  _sdconfig_.currentZone.type = zcNONE;
+  _sdconfig_.cron_update = 0;
+  _sdconfig_.eventToUpdateHappened = false;
   read_cron();
   read_cache();
-  //logMessage (LOG_ERR, "**** ADD CODE TO READ CACHE *****\n");
 
   /*
   if (port != -1)
-    _gpioconfig_.port = port; 
+    _sdconfig_.port = port; 
   */
   logMessage (LOG_DEBUG, "Running %s with options :- daemon=%d, verbose=%d, httpdport=%s, debug2file=%d configfile=%s\n", 
-                         argv[0], _daemon_, debuglog, _gpioconfig_.socket_port, _debug2file_, cfg);
+                         argv[0], _daemon_, debuglog, _sdconfig_.socket_port, _debug2file_, cfg);
 
   signal(SIGINT, intHandler);
   signal(SIGTERM, intHandler);
@@ -177,64 +189,64 @@ void main_loop ()
 
   logMessage(LOG_DEBUG, "Setting up GPIO\n");
 
-  //for (i=0; _gpioconfig_.gpiocfg[i].pin > -1 ; i++)
-  for (i=(_gpioconfig_.master_valve?0:1); i <= _gpioconfig_.zones ; i++)
+  //for (i=0; _sdconfig_.zonecfg[i].pin > -1 ; i++)
+  for (i=(_sdconfig_.master_valve?0:1); i <= _sdconfig_.zones ; i++)
   {
     logMessage (LOG_DEBUG, "Setting up Zone %d\n", i);    
     
-    if (_gpioconfig_.gpiocfg[i].input_output == OUTPUT) {
-      digitalWrite(_gpioconfig_.gpiocfg[i].pin, digitalRead(_gpioconfig_.gpiocfg[i].pin));
-      logMessage (LOG_DEBUG, "Pre Set pin %d set to current state to stop statup bounce when using output mode\n", _gpioconfig_.gpiocfg[i].pin);
+    if (_sdconfig_.zonecfg[i].input_output == OUTPUT) {
+      digitalWrite(_sdconfig_.zonecfg[i].pin, digitalRead(_sdconfig_.zonecfg[i].pin));
+      logMessage (LOG_DEBUG, "Pre Set pin %d set to current state to stop statup bounce when using output mode\n", _sdconfig_.zonecfg[i].pin);
     }
     
 
 //sleep(5); 
-    pinMode (_gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].input_output);
+    pinMode (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].input_output);
 
-    logMessage (LOG_DEBUG, "Set pin %d set to %s\n", _gpioconfig_.gpiocfg[i].pin,(_gpioconfig_.gpiocfg[i].input_output==OUTPUT?"OUTPUT":"INPUT") );
+    logMessage (LOG_DEBUG, "Set pin %d set to %s\n", _sdconfig_.zonecfg[i].pin,(_sdconfig_.zonecfg[i].input_output==OUTPUT?"OUTPUT":"INPUT") );
     /*
-    if (_gpioconfig_.gpiocfg[i].input_output == OUTPUT) {
-      digitalWrite(_gpioconfig_.gpiocfg[i].pin, 1);
-      logMessage (LOG_DEBUG, "Set pin %d set to high/off\n", _gpioconfig_.gpiocfg[i].pin);
+    if (_sdconfig_.zonecfg[i].input_output == OUTPUT) {
+      digitalWrite(_sdconfig_.zonecfg[i].pin, 1);
+      logMessage (LOG_DEBUG, "Set pin %d set to high/off\n", _sdconfig_.zonecfg[i].pin);
     }
     */
 
-    if ( _gpioconfig_.gpiocfg[i].startup_state == 0 || _gpioconfig_.gpiocfg[i].startup_state == 1 ) {
+    if ( _sdconfig_.zonecfg[i].startup_state == 0 || _sdconfig_.zonecfg[i].startup_state == 1 ) {
 //sleep(5);
-      logMessage (LOG_DEBUG, "Setting pin %d to state %d\n", _gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].startup_state);
-      digitalWrite(_gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].startup_state);
+      logMessage (LOG_DEBUG, "Setting pin %d to state %d\n", _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].startup_state);
+      digitalWrite(_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].startup_state);
     }
 
-    if (_gpioconfig_.gpiocfg[i].set_pull_updown != NONE) {
+    if (_sdconfig_.zonecfg[i].set_pull_updown != NONE) {
 //sleep(5);
-      logMessage (LOG_DEBUG, "Set pin %d set pull up/down resistor to %d\n", _gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].set_pull_updown );
-      pullUpDnControl (_gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].set_pull_updown);
+      logMessage (LOG_DEBUG, "Set pin %d set pull up/down resistor to %d\n", _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].set_pull_updown );
+      pullUpDnControl (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].set_pull_updown);
     }
 
-    if ( _gpioconfig_.gpiocfg[i].receive_mode != NONE) {
+    if ( _sdconfig_.zonecfg[i].receive_mode != NONE) {
 //sleep(5);
-      if (wiringPiISR (_gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].receive_mode, callbackFunctions[i]) == -1)
+      if (wiringPiISR (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].receive_mode, callbackFunctions[i]) == -1)
       {
         displayLastSystemError ("Unable to set interrupt handler for specified pin, exiting");
         exit (EXIT_FAILURE);
       }
       
-      logMessage (LOG_DEBUG, "Set pin %d for trigger with rising/falling mode %d\n", _gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].receive_mode );
+      logMessage (LOG_DEBUG, "Set pin %d for trigger with rising/falling mode %d\n", _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].receive_mode );
       // Reset output mode if we are triggering on an output pin, as last call re-sets state for some reason
-      if (_gpioconfig_.gpiocfg[i].input_output == OUTPUT) {
+      if (_sdconfig_.zonecfg[i].input_output == OUTPUT) {
 //sleep(5);
-        pinMode (_gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].input_output);
-        logMessage (LOG_DEBUG, "ReSet pin %d set to %s\n", _gpioconfig_.gpiocfg[i].pin,(_gpioconfig_.gpiocfg[i].input_output==OUTPUT?"OUTPUT":"INPUT") );
+        pinMode (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].input_output);
+        logMessage (LOG_DEBUG, "ReSet pin %d set to %s\n", _sdconfig_.zonecfg[i].pin,(_sdconfig_.zonecfg[i].input_output==OUTPUT?"OUTPUT":"INPUT") );
       }
       
     }
   }
 /*
-  for (i=0; i < _gpioconfig_.pinscfgs ; i++)
+  for (i=0; i < _sdconfig_.pinscfgs ; i++)
   {
-    if ( _gpioconfig_.gpiocfg[i].startup_state == 0 || _gpioconfig_.gpiocfg[i].startup_state == 1 ) {
-      logMessage (LOG_DEBUG, "Setting pin %d to state %d\n", _gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].startup_state);
-      digitalWrite(_gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].startup_state);
+    if ( _sdconfig_.zonecfg[i].startup_state == 0 || _sdconfig_.zonecfg[i].startup_state == 1 ) {
+      logMessage (LOG_DEBUG, "Setting pin %d to state %d\n", _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].startup_state);
+      digitalWrite(_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].startup_state);
     }
   }
 */
@@ -243,7 +255,7 @@ void main_loop ()
   logMessage (LOG_DEBUG, "Starting HTTPD\n");
   
   if (!start_net_services(&_mgr)) {
-    logMessage(LOG_ERR, "Can not start webserver on port %s.\n", _gpioconfig_.socket_port);
+    logMessage(LOG_ERR, "Can not start webserver on port %s.\n", _sdconfig_.socket_port);
     exit(EXIT_FAILURE);
   }
   
@@ -253,8 +265,8 @@ void main_loop ()
     mg_mgr_poll(&_mgr, 500);
     
     check_cron();
-    if (zc_check() == true || check_delay24h() == true || _gpioconfig_.eventToUpdateHappened) {
-      _gpioconfig_.eventToUpdateHappened = false;
+    if (zc_check() == true || check_delay24h() == true || _sdconfig_.eventToUpdateHappened) {
+      _sdconfig_.eventToUpdateHappened = false;
       broadcast_sprinklerdstate(_mgr.active_connections);
     }
 
@@ -277,12 +289,12 @@ void Daemon_Stop (int signum)
   logMessage (LOG_INFO, "Stopping!\n");
   //close(server_sock);
 
-  //(_gpioconfig_.master_valve?0:1)
-  for (i=(_gpioconfig_.master_valve?0:1); i <= _gpioconfig_.zones ; i++)
+  //(_sdconfig_.master_valve?0:1)
+  for (i=(_sdconfig_.master_valve?0:1); i <= _sdconfig_.zones ; i++)
   {
-    if ( _gpioconfig_.gpiocfg[i].shutdown_state == 0 || _gpioconfig_.gpiocfg[i].shutdown_state == 1 ) {
-      logMessage (LOG_DEBUG, "Turning off Zone %d. Setting pin %d to state %d\n", i, _gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].shutdown_state);
-      digitalWrite(_gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].shutdown_state);
+    if ( _sdconfig_.zonecfg[i].shutdown_state == 0 || _sdconfig_.zonecfg[i].shutdown_state == 1 ) {
+      logMessage (LOG_DEBUG, "Turning off Zone %d. Setting pin %d to state %d\n", i, _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].shutdown_state);
+      digitalWrite(_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].shutdown_state);
     }
   }
   /*
@@ -301,11 +313,11 @@ void intHandler(int signum) {
   //syslog (LOG_INFO, "Stopping");
   logMessage (LOG_INFO, "Stopping!\n");
 
-  for (i=(_gpioconfig_.master_valve?0:1); i <= _gpioconfig_.zones ; i++)
+  for (i=(_sdconfig_.master_valve?0:1); i <= _sdconfig_.zones ; i++)
   {
-    if ( _gpioconfig_.gpiocfg[i].shutdown_state == 0 || _gpioconfig_.gpiocfg[i].shutdown_state == 1 ) {
-      logMessage (LOG_DEBUG, "Turning off Zone %d. Setting pin %d to state %d\n", i, _gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].shutdown_state);
-      digitalWrite(_gpioconfig_.gpiocfg[i].pin, _gpioconfig_.gpiocfg[i].shutdown_state);
+    if ( _sdconfig_.zonecfg[i].shutdown_state == 0 || _sdconfig_.zonecfg[i].shutdown_state == 1 ) {
+      logMessage (LOG_DEBUG, "Turning off Zone %d. Setting pin %d to state %d\n", i, _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].shutdown_state);
+      digitalWrite(_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].shutdown_state);
     }
   }
   
@@ -372,7 +384,7 @@ void event_trigger (struct GPIOcfg *gpiopin)
   logMessage (LOG_DEBUG,"%s Receive input change on pin %d - END\n",timebuffer, gpiopin->pin);
   //if (changed ==true )
   if (_mgr.active_connections != NULL) {
-    _gpioconfig_.eventToUpdateHappened = true;
+    _sdconfig_.eventToUpdateHappened = true;
     //broadcast_zonestate(_mgr.active_connections, gpiopin);
   }
 }

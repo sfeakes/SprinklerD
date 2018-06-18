@@ -17,7 +17,7 @@
 
 #define MAXCFGLINE 256
 
-struct GPIOCONTROLcfg _gpioconfig_;
+struct sprinklerdcfg _sdconfig_;
 
 bool remount_root_ro(bool readonly) {
   // NSF Check if config is RO_ROOT set
@@ -43,17 +43,18 @@ void write_cache() {
   FILE *fp;
   int zone;
 
-  fp = fopen(_gpioconfig_.cache_file, "w");
+  fp = fopen(_sdconfig_.cache_file, "w");
   if (fp == NULL) {
-    logMessage(LOG_ERR, "Open file failed '%s'\n", _gpioconfig_.cache_file);
+    logMessage(LOG_ERR, "Open file failed '%s'\n", _sdconfig_.cache_file);
     remount_root_ro(true);
     return;
   }
 
-  fprintf(fp, "%d\n", _gpioconfig_.system);
-  fprintf(fp, "%d\n", _gpioconfig_.delay24h);
-  for (zone=1; zone <= _gpioconfig_.zones; zone ++) {
-    fprintf(fp, "%d\n", _gpioconfig_.gpiocfg[zone].default_runtime);
+  fprintf(fp, "%d\n", _sdconfig_.system);
+  fprintf(fp, "%d\n", _sdconfig_.delay24h);
+  fprintf(fp, "%li\n", _sdconfig_.delay24h_time);
+  for (zone=1; zone <= _sdconfig_.zones; zone ++) {
+    fprintf(fp, "%d\n", _sdconfig_.zonecfg[zone].default_runtime);
   }
   fclose(fp);
 
@@ -67,20 +68,23 @@ void read_cache() {
   int i;
   int c = 0;
 
-  fp = fopen(_gpioconfig_.cache_file, "r");
+  fp = fopen(_sdconfig_.cache_file, "r");
   if (fp == NULL) {
-    logMessage(LOG_ERR, "Open file failed '%s'\n", _gpioconfig_.cache_file);
+    logMessage(LOG_ERR, "Open file failed '%s'\n", _sdconfig_.cache_file);
     return;
   }
   while (EOF != fscanf (fp, "%d", &i)) {
     if (c == 0){
-      _gpioconfig_.system = i;
-      logMessage(LOG_DEBUG, "Read System '%s' from cache\n", _gpioconfig_.system?"ON":"OFF");
+      _sdconfig_.system = i;
+      logMessage(LOG_DEBUG, "Read System '%s' from cache\n", _sdconfig_.system?"ON":"OFF");
     } else if (c == 1){
-      _gpioconfig_.delay24h = i;
-      logMessage(LOG_DEBUG, "Read delay24h '%s' from cache\n", _gpioconfig_.delay24h?"ON":"OFF");
-    } else if ( c-1 <= _gpioconfig_.zones) {
-      _gpioconfig_.gpiocfg[c-1].default_runtime = i;
+      _sdconfig_.delay24h = i;
+      logMessage(LOG_DEBUG, "Read delay24h '%s' from cache\n", _sdconfig_.delay24h?"ON":"OFF");
+    } else if (c == 2){
+      _sdconfig_.delay24h_time = i;
+       logMessage(LOG_DEBUG, "Read delay24h endtime '%li' from cache\n",_sdconfig_.delay24h_time);
+    } else if ( c-1 <= _sdconfig_.zones) {
+      _sdconfig_.zonecfg[c-1].default_runtime = i;
       logMessage(LOG_DEBUG, "Read default_runtime '%d' for zone %d\n", i, c-1);
     }
     c++;
@@ -88,14 +92,14 @@ void read_cache() {
 /*
   fscanf (fp, "%d", &i);
   if (i > -1 && i< 2) {
-    _gpioconfig_.system = i;
-    logMessage(LOG_DEBUG, "Read System '%s' from cache\n", _gpioconfig_.system?"ON":"OFF");
+    _sdconfig_.system = i;
+    logMessage(LOG_DEBUG, "Read System '%s' from cache\n", _sdconfig_.system?"ON":"OFF");
   }
 
   fscanf (fp, "%d", &i);
   if (i > -1 && i< 5000) {
-    _gpioconfig_.delay24h = i;
-    logMessage(LOG_DEBUG, "Read delay24h '%s' from cache\n", _gpioconfig_.delay24h?"ON":"OFF");
+    _sdconfig_.delay24h = i;
+    logMessage(LOG_DEBUG, "Read delay24h '%s' from cache\n", _sdconfig_.delay24h?"ON":"OFF");
   }
 */
   fclose (fp);
@@ -194,47 +198,47 @@ void readCfg(char *inifile)
   int idx=0;
 
   ini_gets("SPRINKLERD", "LOG_LEVEL", "WARNING", str, sizearray(str), inifile);
-  if (_gpioconfig_.log_level != LOG_DEBUG)
-    _gpioconfig_.log_level = text2elevel(str);
+  if (_sdconfig_.log_level != LOG_DEBUG)
+    _sdconfig_.log_level = text2elevel(str);
 
-  ini_gets("SPRINKLERD", "NAME", "None", _gpioconfig_.name, sizearray(_gpioconfig_.name), inifile);
-  ini_gets("SPRINKLERD", "PORT", "8888", _gpioconfig_.socket_port, sizearray(_gpioconfig_.socket_port), inifile);
-  ini_gets("SPRINKLERD", "DOCUMENTROOT", "./", _gpioconfig_.docroot, sizearray(_gpioconfig_.docroot), inifile);
-  ini_gets("SPRINKLERD", "CACHE", "/tmp/sprinklerd.cache", _gpioconfig_.cache_file, sizearray(_gpioconfig_.cache_file), inifile);
-  ini_gets("SPRINKLERD", "MQTT_ADDRESS", NULL, _gpioconfig_.mqtt_address, sizearray(_gpioconfig_.mqtt_address), inifile);
-  ini_gets("SPRINKLERD", "MQTT_USER", NULL, _gpioconfig_.mqtt_user, sizearray(_gpioconfig_.mqtt_user), inifile);
-  ini_gets("SPRINKLERD", "MQTT_PASSWD", NULL, _gpioconfig_.mqtt_passwd, sizearray(_gpioconfig_.mqtt_passwd), inifile);
+  ini_gets("SPRINKLERD", "NAME", "None", _sdconfig_.name, sizearray(_sdconfig_.name), inifile);
+  ini_gets("SPRINKLERD", "PORT", "8888", _sdconfig_.socket_port, sizearray(_sdconfig_.socket_port), inifile);
+  ini_gets("SPRINKLERD", "DOCUMENTROOT", "./", _sdconfig_.docroot, sizearray(_sdconfig_.docroot), inifile);
+  ini_gets("SPRINKLERD", "CACHE", "/tmp/sprinklerd.cache", _sdconfig_.cache_file, sizearray(_sdconfig_.cache_file), inifile);
+  ini_gets("SPRINKLERD", "MQTT_ADDRESS", NULL, _sdconfig_.mqtt_address, sizearray(_sdconfig_.mqtt_address), inifile);
+  ini_gets("SPRINKLERD", "MQTT_USER", NULL, _sdconfig_.mqtt_user, sizearray(_sdconfig_.mqtt_user), inifile);
+  ini_gets("SPRINKLERD", "MQTT_PASSWD", NULL, _sdconfig_.mqtt_passwd, sizearray(_sdconfig_.mqtt_passwd), inifile);
   
-  if ( ini_gets("SPRINKLERD", "MQT_TOPIC", NULL, _gpioconfig_.mqtt_topic, sizearray(_gpioconfig_.mqtt_topic), inifile) > 0 )
-    _gpioconfig_.enableMQTTaq = true;
+  if ( ini_gets("SPRINKLERD", "MQT_TOPIC", NULL, _sdconfig_.mqtt_topic, sizearray(_sdconfig_.mqtt_topic), inifile) > 0 )
+    _sdconfig_.enableMQTTaq = true;
   else
-    _gpioconfig_.enableMQTTaq = false;
+    _sdconfig_.enableMQTTaq = false;
 
-  if ( ini_gets("SPRINKLERD", "MQTT_DZ_PUB_TOPIC", NULL, _gpioconfig_.mqtt_dz_pub_topic, sizearray(_gpioconfig_.mqtt_dz_pub_topic), inifile) > 0 &&
-       ini_gets("SPRINKLERD", "MQTT_DZ_SUB_TOPIC", NULL, _gpioconfig_.mqtt_dz_sub_topic, sizearray(_gpioconfig_.mqtt_dz_sub_topic), inifile) > 0)
-    _gpioconfig_.enableMQTTdz = true;
+  if ( ini_gets("SPRINKLERD", "MQTT_DZ_PUB_TOPIC", NULL, _sdconfig_.mqtt_dz_pub_topic, sizearray(_sdconfig_.mqtt_dz_pub_topic), inifile) > 0 &&
+       ini_gets("SPRINKLERD", "MQTT_DZ_SUB_TOPIC", NULL, _sdconfig_.mqtt_dz_sub_topic, sizearray(_sdconfig_.mqtt_dz_sub_topic), inifile) > 0)
+    _sdconfig_.enableMQTTdz = true;
   else
-    _gpioconfig_.enableMQTTdz = false;
+    _sdconfig_.enableMQTTdz = false;
 
-  if (_gpioconfig_.enableMQTTdz == true || _gpioconfig_.enableMQTTaq == true) {
-    logMessage (LOG_DEBUG,"Config mqtt_topic '%s'\n",_gpioconfig_.mqtt_topic);
-    logMessage (LOG_DEBUG,"Config mqtt_dz_pub_topic '%s'\n",_gpioconfig_.mqtt_dz_pub_topic);
-    logMessage (LOG_DEBUG,"Config mqtt_dz_sub_topic '%s'\n",_gpioconfig_.mqtt_dz_sub_topic);
+  if (_sdconfig_.enableMQTTdz == true || _sdconfig_.enableMQTTaq == true) {
+    logMessage (LOG_DEBUG,"Config mqtt_topic '%s'\n",_sdconfig_.mqtt_topic);
+    logMessage (LOG_DEBUG,"Config mqtt_dz_pub_topic '%s'\n",_sdconfig_.mqtt_dz_pub_topic);
+    logMessage (LOG_DEBUG,"Config mqtt_dz_sub_topic '%s'\n",_sdconfig_.mqtt_dz_sub_topic);
   } else {
     logMessage (LOG_DEBUG,"Config mqtt 'disabeled'\n");
   }
 
-  _gpioconfig_.dzidx_system = ini_getl(str, "DZIDX_SYSTEM", 0, inifile);
-  _gpioconfig_.dzidx_24hdelay = ini_getl(str, "DZIDX_24HDELAY", 0, inifile);
-  _gpioconfig_.dzidx_allzones = ini_getl(str, "DZIDX_ALL_ZONES", 0, inifile);
+  _sdconfig_.dzidx_system = ini_getl("SPRINKLERD", "DZIDX_SYSTEM", 0, inifile);
+  _sdconfig_.dzidx_24hdelay = ini_getl("SPRINKLERD", "DZIDX_24HDELAY", 0, inifile);
+  _sdconfig_.dzidx_allzones = ini_getl("SPRINKLERD", "DZIDX_ALL_ZONES", 0, inifile);
 
-  logMessage (LOG_INFO, "Name = %s\n", _gpioconfig_.name);
-  logMessage (LOG_INFO, "Port = %s\n", _gpioconfig_.socket_port);
-  logMessage (LOG_INFO, "Docroot = %s\n", _gpioconfig_.docroot);
+  logMessage (LOG_INFO, "Name = %s\n", _sdconfig_.name);
+  logMessage (LOG_INFO, "Port = %s\n", _sdconfig_.socket_port);
+  logMessage (LOG_INFO, "Docroot = %s\n", _sdconfig_.docroot);
 
   idx=0;
   int pin=-1;
-  _gpioconfig_.zones = 0;
+  _sdconfig_.zones = 0;
 
   // Caculate how many zones we have
   for (i=1; i <= 24; i++) // 24 = Just some arbutary number (max GPIO without expansion board)
@@ -244,46 +248,48 @@ void readCfg(char *inifile)
     if (pin == -1)
       break;
     else
-      _gpioconfig_.zones = i;
+      _sdconfig_.zones = i;
   }
   
-  logMessage (LOG_DEBUG, "Found %d ZONES\n", _gpioconfig_.zones);
-  _gpioconfig_.master_valve = false;
+  logMessage (LOG_DEBUG, "Found %d ZONES\n", _sdconfig_.zones);
+  _sdconfig_.master_valve = false;
 
-  if ( _gpioconfig_.zones != 0) {
-  //  n= _gpioconfig_.zones+1;
-    _gpioconfig_.gpiocfg = malloc((_gpioconfig_.zones + 1) * sizeof(struct GPIOcfg));
-    for (i=0; i <= _gpioconfig_.zones; i++)
+  //_sdconfig_.dz_cache = malloc((_sdconfig_.zones + NON_ZONE_DZIDS + 1) * sizeof(struct DZcache)); 
+  _sdconfig_.dz_cache = calloc((_sdconfig_.zones + NON_ZONE_DZIDS + 1), sizeof(struct DZcache)); 
+  if ( _sdconfig_.zones != 0) {
+  //  n= _sdconfig_.zones+1;
+    _sdconfig_.zonecfg = malloc((_sdconfig_.zones + 1) * sizeof(struct GPIOcfg));
+    for (i=0; i <= _sdconfig_.zones; i++)
     {
       sprintf(str, "ZONE:%d", i);
       int pin = ini_getl(str, "GPIO_PIN", -1, inifile);
       if (pin != -1) {
         logMessage (LOG_DEBUG, "ZONE = %d\n", i);
         if (i==0) {
-          _gpioconfig_.master_valve = true;
+          _sdconfig_.master_valve = true;
         }
-        _gpioconfig_.gpiocfg[i].input_output = OUTPUT; // Zone is always output 
-        _gpioconfig_.gpiocfg[i].receive_mode = BOTH; // Zone always needs trigger on both (high or low)
+        _sdconfig_.zonecfg[i].input_output = OUTPUT; // Zone is always output 
+        _sdconfig_.zonecfg[i].receive_mode = BOTH; // Zone always needs trigger on both (high or low)
 
-        _gpioconfig_.gpiocfg[i].zone = i;
-        _gpioconfig_.gpiocfg[i].pin = pin;
-        _gpioconfig_.gpiocfg[i].on_state = ini_getl(str, "GPIO_ON_STATE", NO, inifile);
-        _gpioconfig_.gpiocfg[i].startup_state = !_gpioconfig_.gpiocfg[i].on_state;
-        _gpioconfig_.gpiocfg[i].shutdown_state = !_gpioconfig_.gpiocfg[i].on_state;
+        _sdconfig_.zonecfg[i].zone = i;
+        _sdconfig_.zonecfg[i].pin = pin;
+        _sdconfig_.zonecfg[i].on_state = ini_getl(str, "GPIO_ON_STATE", NO, inifile);
+        _sdconfig_.zonecfg[i].startup_state = !_sdconfig_.zonecfg[i].on_state;
+        _sdconfig_.zonecfg[i].shutdown_state = !_sdconfig_.zonecfg[i].on_state;
 
-        _gpioconfig_.gpiocfg[i].set_pull_updown = ini_getl(str, "GPIO_PULL_UPDN", -1, inifile);
-        _gpioconfig_.gpiocfg[i].dz_idx = ini_getl(str, "DOMOTICZ_IDX", -1, inifile);
-        //_gpioconfig_.gpiocfg[i].master_valve = ini_getl(str, "MASTER_VALVE", NO, inifile);
-        _gpioconfig_.gpiocfg[i].default_runtime = ini_getl(str, "DEFAULT_RUNTIME", 10, inifile);
-        ini_gets(str, "NAME", NULL, _gpioconfig_.gpiocfg[idx].name, sizearray(_gpioconfig_.gpiocfg[idx].name), inifile);
+        _sdconfig_.zonecfg[i].set_pull_updown = ini_getl(str, "GPIO_PULL_UPDN", -1, inifile);
+        _sdconfig_.zonecfg[i].dz_idx = ini_getl(str, "DOMOTICZ_IDX", -1, inifile);
+        //_sdconfig_.zonecfg[i].master_valve = ini_getl(str, "MASTER_VALVE", NO, inifile);
+        _sdconfig_.zonecfg[i].default_runtime = ini_getl(str, "DEFAULT_RUNTIME", 10, inifile);
+        ini_gets(str, "NAME", NULL, _sdconfig_.zonecfg[idx].name, sizearray(_sdconfig_.zonecfg[idx].name), inifile);
 
          logMessage (LOG_DEBUG,"Zone Config        : %s\n%25s : %d\n%25s : %d\n%25s : %d\n%25s : %d\n%25s : %d\n",
-              _gpioconfig_.gpiocfg[i].name,
-              "PIN",_gpioconfig_.gpiocfg[i].pin,
-              "Set pull up/down", _gpioconfig_.gpiocfg[i].set_pull_updown, 
-              "ON state", _gpioconfig_.gpiocfg[i].on_state, 
-              "Master valve", _gpioconfig_.gpiocfg[i].master_valve,
-              "Domoticz IDX", _gpioconfig_.gpiocfg[i].dz_idx);
+              _sdconfig_.zonecfg[i].name,
+              "PIN",_sdconfig_.zonecfg[i].pin,
+              "Set pull up/down", _sdconfig_.zonecfg[i].set_pull_updown, 
+              "ON state", _sdconfig_.zonecfg[i].on_state, 
+              "Master valve", _sdconfig_.zonecfg[i].master_valve,
+              "Domoticz IDX", _sdconfig_.zonecfg[i].dz_idx);
          idx++;
       } else {
         logMessage (LOG_DEBUG, "No Information for ZONE = %d\n", i);
@@ -292,16 +298,16 @@ void readCfg(char *inifile)
       }
     }
     
-    _gpioconfig_.pinscfgs = idx;
-    logMessage (LOG_DEBUG,"Config: total GPIO pins = %d\n",_gpioconfig_.pinscfgs);
+    _sdconfig_.pinscfgs = idx;
+    logMessage (LOG_DEBUG,"Config: total GPIO pins = %d\n",_sdconfig_.pinscfgs);
 
-    _gpioconfig_.cron[0].zruntimes = malloc(_gpioconfig_.zones * sizeof(int));
-    _gpioconfig_.cron[1].zruntimes = malloc(_gpioconfig_.zones * sizeof(int));
-    _gpioconfig_.cron[2].zruntimes = malloc(_gpioconfig_.zones * sizeof(int));
-    _gpioconfig_.cron[3].zruntimes = malloc(_gpioconfig_.zones * sizeof(int));
-    _gpioconfig_.cron[4].zruntimes = malloc(_gpioconfig_.zones * sizeof(int));
-    _gpioconfig_.cron[5].zruntimes = malloc(_gpioconfig_.zones * sizeof(int));
-    _gpioconfig_.cron[6].zruntimes = malloc(_gpioconfig_.zones * sizeof(int));
+    _sdconfig_.cron[0].zruntimes = malloc(_sdconfig_.zones * sizeof(int));
+    _sdconfig_.cron[1].zruntimes = malloc(_sdconfig_.zones * sizeof(int));
+    _sdconfig_.cron[2].zruntimes = malloc(_sdconfig_.zones * sizeof(int));
+    _sdconfig_.cron[3].zruntimes = malloc(_sdconfig_.zones * sizeof(int));
+    _sdconfig_.cron[4].zruntimes = malloc(_sdconfig_.zones * sizeof(int));
+    _sdconfig_.cron[5].zruntimes = malloc(_sdconfig_.zones * sizeof(int));
+    _sdconfig_.cron[6].zruntimes = malloc(_sdconfig_.zones * sizeof(int));
 
   } else {
     printf("ERROR no config zones set\n");
