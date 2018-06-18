@@ -10,12 +10,12 @@ It does support a master valve or pump. (ie turn on a master device with every z
 ### It does not, and will never provide any layer of security. NEVER directly expose the device running this software to the outside world, only indirectly through the use of Home Automation hub's or other securty measures, e.g. VPNs.
 
 ## Builtin WEB Interface.
-![Image](extras/IMG_0236.PNG?raw=true)
+![Image](extras/IMG_0236.png?raw=true)
 ![Image](extras/MainUI.PNG?raw=true)
 ![Image](extras/CalendarUI.PNG?raw=true)
 
 ## In Apple Home app.
-![Image](extras/IMG_0238.PNG?raw=true)
+![Image](extras/IMG_0238.png?raw=true)
 
 # TL;DR Install
 ## Quick instal if you are using Raspberry PI
