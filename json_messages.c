@@ -49,7 +49,7 @@ int build_sprinkler_JSON(char* buffer, int size)
                                     _sdconfig_.currentZone.type==zcALL?"on":"off", 
                                     _sdconfig_.zones,
                                     _sdconfig_.delay24h_time);
-      for (i=1; i < _sdconfig_.pinscfgs ; i++)
+      for (i=1; i <= _sdconfig_.zones ; i++)
       {
         length += sprintf(buffer+length,  ", \"z%d\" : \"%s\", \"z%d-runtime\" : %d, \"z%d-name\" : \"%s\" ", 
                    _sdconfig_.zonecfg[i].zone, 
@@ -60,6 +60,37 @@ int build_sprinkler_JSON(char* buffer, int size)
                    _sdconfig_.zonecfg[i].name);
       }
       length += sprintf(buffer+length, "}");
+
+  buffer[length] = '\0';
+  return strlen(buffer);
+}
+
+int build_advanced_sprinkler_JSON(char* buffer, int size)
+{
+  int i;
+  memset(&buffer[0], 0, size);
+  int length = 0;
+
+  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"system\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"#zones\" : %d, \"24hdelay-offtime\" : %li", 
+                                    _sdconfig_.name, _sdconfig_.system?"on":"off",  
+                                    _sdconfig_.delay24h?"on":"off", 
+                                    _sdconfig_.currentZone.type==zcALL?"on":"off", 
+                                    _sdconfig_.zones,
+                                    _sdconfig_.delay24h_time);
+  
+  length += sprintf(buffer+length,  ", \"zones\": {");
+  for (i=1; i <= _sdconfig_.zones ; i++)
+  {
+    length += sprintf(buffer+length,  "\"zone %d\": {\"number\": %d, \"name\": \"%s\", \"state\": \"%s\", \"runtime\": %d },",
+                                      _sdconfig_.zonecfg[i].zone,
+                                      _sdconfig_.zonecfg[i].zone,
+                                      _sdconfig_.zonecfg[i].name,
+                                      (digitalRead(_sdconfig_.zonecfg[i].pin)==_sdconfig_.zonecfg[i].on_state?"on":"off"),
+                                      _sdconfig_.zonecfg[i].default_runtime
+                                      );
+  }
+
+  length += sprintf(buffer+length-1, "}}");
 
   buffer[length] = '\0';
   return strlen(buffer);

@@ -225,7 +225,25 @@ void broadcast_zonestate(struct mg_connection *nc, struct GPIOcfg *gpiopin)
   return;
 }
 
+void broadcast_sprinklerdactivestate(struct mg_connection *nc) 
+{
+  //static int mqtt_count=0;
+  //int i;
+  struct mg_connection *c;
+  static char mqtt_topic[250];
+  static char mqtt_msg[50];
 
+  for (c = mg_next(nc->mgr, NULL); c != NULL; c = mg_next(nc->mgr, c)) {
+    if (is_mqtt(c)) {
+      sprintf(mqtt_topic, "%s/active", _sdconfig_.mqtt_topic);
+      sprintf(mqtt_msg, "Zone %d", _sdconfig_.currentZone.zone );
+      send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      sprintf(mqtt_topic, "%s/remainingduration", _sdconfig_.mqtt_topic);
+      sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft );
+      send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+    }
+  }
+}
 
 void broadcast_sprinklerdstate(struct mg_connection *nc) 
 {
@@ -236,7 +254,8 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
   static char mqtt_msg[50];
 
   for (c = mg_next(nc->mgr, NULL); c != NULL; c = mg_next(nc->mgr, c)) {
-    for (i=1; i <= _sdconfig_.zones ; i++)
+    // Start from 0 since we publish master valve (just a temp measure)
+    for (i=0; i <= _sdconfig_.zones ; i++)
     {
       if (is_websocket(c)) {
         //ws_send(c, data);
@@ -260,7 +279,6 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
      if (_sdconfig_.enableMQTTdz == true) {
       if (_sdconfig_.dzidx_system > 0 && update_dz_cache(_sdconfig_.dzidx_system,(_sdconfig_.system==true ? DZ_ON : DZ_OFF) )) {
         build_dz_mqtt_status_JSON(mqtt_msg, 50, _sdconfig_.dzidx_system, (_sdconfig_.system==true ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
-        send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_msg);
         send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_msg);
       }
       if (_sdconfig_.dzidx_24hdelay > 0 && update_dz_cache(_sdconfig_.dzidx_24hdelay,(_sdconfig_.delay24h==true ? DZ_ON : DZ_OFF) )) {
@@ -322,7 +340,9 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
   mg_get_http_var(&http_msg->query_string, "type", buf, buflen);
   logMessage (LOG_DEBUG, "Request type %s\n",buf);
 
-  if (strcmp(buf, "firstload") == 0) {
+  if (strcmp(buf, "json") == 0) {
+    length = build_advanced_sprinkler_JSON(buffer, size);   
+  } else if (strcmp(buf, "firstload") == 0) {
       logMessage(LOG_DEBUG, "WEB REQUEST Firstload %s\n",buf);
       length = build_sprinkler_cal_JSON(buffer, size);
   } else if (strcmp(buf, "read") == 0) {

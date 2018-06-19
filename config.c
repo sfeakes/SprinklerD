@@ -83,8 +83,8 @@ void read_cache() {
     } else if (c == 2){
       _sdconfig_.delay24h_time = i;
        logMessage(LOG_DEBUG, "Read delay24h endtime '%li' from cache\n",_sdconfig_.delay24h_time);
-    } else if ( c-1 <= _sdconfig_.zones) {
-      _sdconfig_.zonecfg[c-1].default_runtime = i;
+    } else if ( c-2 <= _sdconfig_.zones) {
+      _sdconfig_.zonecfg[c-2].default_runtime = i;
       logMessage(LOG_DEBUG, "Read default_runtime '%d' for zone %d\n", i, c-1);
     }
     c++;
@@ -204,7 +204,8 @@ void readCfg(char *inifile)
   ini_gets("SPRINKLERD", "NAME", "None", _sdconfig_.name, sizearray(_sdconfig_.name), inifile);
   ini_gets("SPRINKLERD", "PORT", "8888", _sdconfig_.socket_port, sizearray(_sdconfig_.socket_port), inifile);
   ini_gets("SPRINKLERD", "DOCUMENTROOT", "./", _sdconfig_.docroot, sizearray(_sdconfig_.docroot), inifile);
-  ini_gets("SPRINKLERD", "CACHE", "/tmp/sprinklerd.cache", _sdconfig_.cache_file, sizearray(_sdconfig_.cache_file), inifile);
+  //ini_gets("SPRINKLERD", "CACHE", "/tmp/sprinklerd.cache", _sdconfig_.cache_file, sizearray(_sdconfig_.cache_file), inifile);
+  ini_gets("SPRINKLERD", "CACHE", "/tmp/sprinklerd.cache", _sdconfig_.cache_file, 512, inifile);
   ini_gets("SPRINKLERD", "MQTT_ADDRESS", NULL, _sdconfig_.mqtt_address, sizearray(_sdconfig_.mqtt_address), inifile);
   ini_gets("SPRINKLERD", "MQTT_USER", NULL, _sdconfig_.mqtt_user, sizearray(_sdconfig_.mqtt_user), inifile);
   ini_gets("SPRINKLERD", "MQTT_PASSWD", NULL, _sdconfig_.mqtt_passwd, sizearray(_sdconfig_.mqtt_passwd), inifile);

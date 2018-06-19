@@ -259,6 +259,7 @@ void main_loop ()
     exit(EXIT_FAILURE);
   }
   
+  i=0;
   while (true)
   {
     //logMessage (LOG_DEBUG, "mg_mgr_poll\n");
@@ -269,13 +270,19 @@ void main_loop ()
       _sdconfig_.eventToUpdateHappened = false;
       broadcast_sprinklerdstate(_mgr.active_connections);
     }
-
+/*
+    if (i >= 20) {
+      i=0;
+      if (_sdconfig_.currentZone.type != zcNONE)
+        broadcast_sprinklerdactivestate(_mgr.active_connections);
+    }
+*/
     //logMessage (LOG_DEBUG, "check_net_services\n");
     if (check_net_services(&_mgr) == false) {
       sleep(1);
     }
 
-    //i++;
+    i++;
     //logMessage (LOG_DEBUG, "loop\n");
   }
 

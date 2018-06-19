@@ -15,7 +15,7 @@ It does support a master valve or pump. (ie turn on a master device with every z
 <img src="extras/CalendarUI.PNG?raw=true" width="500"></img>
 
 ## In Apple Home app.
-<img src="extras/IMG_0238.png?raw=true" width="350"></img>
+<img src="extras/IMG_0239.png?raw=true" width="350"></img>
 
 # TL;DR Install
 ## Quick instal if you are using Raspberry PI

@@ -15,6 +15,7 @@ bool parseJSONmqttrequest(const char *str, size_t len, int *idx, int *nvalue, ch
 int build_dz_mqtt_status_JSON(char* buffer, int size, int idx, int nvalue, float tvalue);
 int build_sprinkler_JSON(char* buffer, int size);
 int build_sprinkler_cal_JSON(char* buffer, int size);
+int build_advanced_sprinkler_JSON(char* buffer, int size);  
 
 
 

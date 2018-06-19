@@ -15,6 +15,7 @@ struct szRunning {
   time_t started_time;
   int duration;
   //time_t *end_time;
+  int timeleft;
   int zone;
 };
 

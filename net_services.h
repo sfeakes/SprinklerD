@@ -17,6 +17,7 @@
 bool start_net_services(struct mg_mgr *mgr);
 void broadcast_zonestate(struct mg_connection *nc, struct GPIOcfg *gpiopin);
 void broadcast_sprinklerdstate(struct mg_connection *nc);
+void broadcast_sprinklerdactivestate(struct mg_connection *nc);
 //void broadcast_state(struct mg_connection *nc);
 //void broadcast_state_error(struct mg_connection *nc, char *msg);
 bool check_net_services(struct mg_mgr *mgr);

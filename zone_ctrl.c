@@ -9,6 +9,20 @@ bool zc_start(int zone);
 bool zc_stop(int zone);
 void zc_master(zcState state);
 
+int calc_timeleft() {
+  if (_sdconfig_.currentZone.zone != -1) {
+    time_t now;
+    time(&now);
+    _sdconfig_.currentZone.timeleft = (_sdconfig_.currentZone.duration * SEC2MIN) - difftime(now, _sdconfig_.currentZone.started_time);
+  } else {
+    _sdconfig_.currentZone.timeleft = 0;
+  }
+
+  //logMessage (LOG_DEBUG, "Zone %d time left %d %d min\n",_sdconfig_.currentZone.zone, _sdconfig_.currentZone.timeleft, (_sdconfig_.currentZone.timeleft / 60) +1);
+
+  return _sdconfig_.currentZone.timeleft;
+}
+
 bool zc_check() {
   // check what's running, and if time now is greater than duration Stop if grater
   // Move onto next zone if (all) runtype
@@ -16,10 +30,13 @@ bool zc_check() {
   if ( _sdconfig_.currentZone.type == zcNONE)
     return false;
 
-  time_t now;
-  time(&now);
+  //time_t now;
+  //time(&now);
+  //int secleft = (_sdconfig_.currentZone.duration * SEC2MIN) - difftime(now, _sdconfig_.currentZone.started_time);
+  //_sdconfig_.currentZone.timeleft = secleft / 60 + 1;
   logMessage (LOG_DEBUG, "Zone running is %d of type %d\n",_sdconfig_.currentZone.zone, _sdconfig_.currentZone.type);
-  if (difftime(now, _sdconfig_.currentZone.started_time) > _sdconfig_.currentZone.duration * SEC2MIN){
+  //if (difftime(now, _sdconfig_.currentZone.started_time) > _sdconfig_.currentZone.duration * SEC2MIN){
+  if (calc_timeleft() <= 0){
     if (_sdconfig_.currentZone.type==zcALL && _sdconfig_.currentZone.zone < _sdconfig_.zones) {
       zc_stop(_sdconfig_.currentZone.zone);
       _sdconfig_.currentZone.zone++;
@@ -31,12 +48,12 @@ bool zc_check() {
       zc_stop(_sdconfig_.currentZone.zone);
       _sdconfig_.currentZone.type=zcNONE;
       _sdconfig_.currentZone.zone=-1;
+      _sdconfig_.currentZone.timeleft = 0;
     }
 
     return true;
   }
 
-  // check if 12h delay needs to be canceled.
   return false;
 }
 
@@ -72,7 +89,7 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
     // Check cal & 24hdelay, return if cal=false or 24hdelay=true
   } else if (type == zcALL) {
     // If we are turning on we ned to start with all zones off, if off, turn them off anyway.
-    for (i=1; i < _sdconfig_.pinscfgs ; i++)
+    for (i=1; i <= _sdconfig_.zones ; i++)
     {
       zc_master(zcOFF);
       if ( _sdconfig_.zonecfg[i].on_state == digitalRead(_sdconfig_.zonecfg[i].pin) )
@@ -86,6 +103,7 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
       time(&_sdconfig_.currentZone.started_time);
       _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[1].default_runtime;
       _sdconfig_.currentZone.type=zcALL;
+      calc_timeleft();
     }
     return true;
   }
@@ -117,6 +135,7 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
     _sdconfig_.currentZone.zone=zone;
     _sdconfig_.currentZone.duration=length;
     time(&_sdconfig_.currentZone.started_time);
+    calc_timeleft();
     return true;
   } else if (state == zcOFF) {
     if (_sdconfig_.currentZone.type == zcALL) { // If all zones, and told to turn off current, run next zone
