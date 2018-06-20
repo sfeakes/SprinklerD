@@ -6,8 +6,14 @@
 #include <time.h>
 #include <stdbool.h>
 // We want a success/failure return value from 'wiringPiSetup()'
-#define WIRINGPI_CODES      1
-#include <wiringPi.h>
+
+#ifdef USE_WIRINGPI
+  #define WIRINGPI_CODES      1
+  #include <wiringPi.h>
+#else
+  #include "sd_GPIO.h"
+#endif
+
 #include "mongoose.h"
 
 #include "utils.h"
@@ -31,7 +37,7 @@ void event_trigger (struct GPIOcfg *);
 void intHandler(int signum);
 
 //extern _sdconfig_;
-
+#ifdef USE_WIRINGPI
 /* BS functions due to limitations in wiringpi of not supporting a pointer in callback event */
 // Let's hope no one wants mroe than 24 zones
 void event_trigger_0 (void) { event_trigger (&_sdconfig_.zonecfg[0]) ; }
@@ -69,6 +75,7 @@ FunctionCallback callbackFunctions[] = {&event_trigger_0, &event_trigger_1, &eve
                                         &event_trigger_15, &event_trigger_16, &event_trigger_17,
                                         &event_trigger_18, &event_trigger_19, &event_trigger_20,
                                         &event_trigger_21, &event_trigger_22, &event_trigger_23};
+#endif
 
 static int server_sock = -1;
  
@@ -172,6 +179,7 @@ void main_loop ()
 {
   int i;
 
+#ifdef USE_WIRINGPI
   /* Make sure the file '/usr/local/bin/gpio' exists */
   struct stat filestat;
   if (stat ("/usr/local/bin/gpio", &filestat) == -1)
@@ -187,23 +195,21 @@ void main_loop ()
     exit (EXIT_FAILURE);
   }
 
-  logMessage(LOG_DEBUG, "Setting up GPIO\n");
+  logMessage(LOG_DEBUG, "Setting up GPIO with WiringPi\n");
 
   //for (i=0; _sdconfig_.zonecfg[i].pin > -1 ; i++)
   for (i=(_sdconfig_.master_valve?0:1); i <= _sdconfig_.zones ; i++)
   {
-    logMessage (LOG_DEBUG, "Setting up Zone %d\n", i);    
-    
+    logMessage (LOG_DEBUG, "Setting up Zone %d\n", i);   
+  
     if (_sdconfig_.zonecfg[i].input_output == OUTPUT) {
       digitalWrite(_sdconfig_.zonecfg[i].pin, digitalRead(_sdconfig_.zonecfg[i].pin));
-      logMessage (LOG_DEBUG, "Pre Set pin %d set to current state to stop statup bounce when using output mode\n", _sdconfig_.zonecfg[i].pin);
+      logMessage (LOG_DEBUG, "Pre Set gpiopin %d set to current state to stop statup bounce when using output mode\n", _sdconfig_.zonecfg[i].pin);
     }
-    
-
 //sleep(5); 
     pinMode (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].input_output);
 
-    logMessage (LOG_DEBUG, "Set pin %d set to %s\n", _sdconfig_.zonecfg[i].pin,(_sdconfig_.zonecfg[i].input_output==OUTPUT?"OUTPUT":"INPUT") );
+    logMessage (LOG_DEBUG, "Set gpiopin %d set to %s\n", _sdconfig_.zonecfg[i].pin,(_sdconfig_.zonecfg[i].input_output==OUTPUT?"OUTPUT":"INPUT") );
     /*
     if (_sdconfig_.zonecfg[i].input_output == OUTPUT) {
       digitalWrite(_sdconfig_.zonecfg[i].pin, 1);
@@ -213,16 +219,14 @@ void main_loop ()
 
     if ( _sdconfig_.zonecfg[i].startup_state == 0 || _sdconfig_.zonecfg[i].startup_state == 1 ) {
 //sleep(5);
-      logMessage (LOG_DEBUG, "Setting pin %d to state %d\n", _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].startup_state);
+      logMessage (LOG_DEBUG, "Setting gpiopin %d to state %d\n", _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].startup_state);
       digitalWrite(_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].startup_state);
     }
-
     if (_sdconfig_.zonecfg[i].set_pull_updown != NONE) {
 //sleep(5);
-      logMessage (LOG_DEBUG, "Set pin %d set pull up/down resistor to %d\n", _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].set_pull_updown );
+      logMessage (LOG_DEBUG, "Set gpiopin %d set pull up/down resistor to %d\n", _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].set_pull_updown );
       pullUpDnControl (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].set_pull_updown);
     }
-
     if ( _sdconfig_.zonecfg[i].receive_mode != NONE) {
 //sleep(5);
       if (wiringPiISR (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].receive_mode, callbackFunctions[i]) == -1)
@@ -231,16 +235,34 @@ void main_loop ()
         exit (EXIT_FAILURE);
       }
       
-      logMessage (LOG_DEBUG, "Set pin %d for trigger with rising/falling mode %d\n", _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].receive_mode );
+      logMessage (LOG_DEBUG, "Set gpiopin %d for trigger with rising/falling mode %d\n", _sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].receive_mode );
       // Reset output mode if we are triggering on an output pin, as last call re-sets state for some reason
       if (_sdconfig_.zonecfg[i].input_output == OUTPUT) {
 //sleep(5);
         pinMode (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].input_output);
-        logMessage (LOG_DEBUG, "ReSet pin %d set to %s\n", _sdconfig_.zonecfg[i].pin,(_sdconfig_.zonecfg[i].input_output==OUTPUT?"OUTPUT":"INPUT") );
+        logMessage (LOG_DEBUG, "ReSet gpiopin %d set to %s\n", _sdconfig_.zonecfg[i].pin,(_sdconfig_.zonecfg[i].input_output==OUTPUT?"OUTPUT":"INPUT") );
       }
       
     }
+
   }
+#else
+  logMessage(LOG_DEBUG, "Setting up GPIO\n");
+  for (i=(_sdconfig_.master_valve?0:1); i <= _sdconfig_.zones ; i++)
+  {
+    logMessage (LOG_DEBUG, "Setting up Zone %d\n", i);
+
+    pinUnexport(_sdconfig_.zonecfg[i].pin);
+    pinExport(_sdconfig_.zonecfg[i].pin);
+
+    pinMode (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].input_output);
+    if ( _sdconfig_.zonecfg[i].startup_state != -1)
+      digitalWrite(_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].startup_state);
+
+    logMessage (LOG_DEBUG, "Set GPIO %d to %s\n", _sdconfig_.zonecfg[i].pin,(_sdconfig_.zonecfg[i].input_output==OUTPUT?"OUTPUT":"INPUT") );
+
+  }
+#endif
 /*
   for (i=0; i < _sdconfig_.pinscfgs ; i++)
   {
@@ -250,7 +272,7 @@ void main_loop ()
     }
   }
 */
-  logMessage (LOG_DEBUG, "Pin setup complete\n");
+  logMessage (LOG_DEBUG, "GPIO setup complete\n");
 
   logMessage (LOG_DEBUG, "Starting HTTPD\n");
   

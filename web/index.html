@@ -108,6 +108,10 @@
     .input-ios {
         font-size: 16px;
     }
+    
+    .status {
+      font-size: 14px;
+    }
 
     .small-note {
       font-size: 12px;
@@ -314,6 +318,11 @@
                 if (obj == 'title') {
                   document.title = data[obj];
                   document.getElementById('title').innerHTML = data[obj];
+                } if (obj == 'status') {
+                  if (data[obj].length > 0)
+                    document.getElementById('status').innerHTML = "Active:&nbsp;"+data[obj];
+                  else
+                    document.getElementById('status').innerHTML = "Run now options";
                 } else if (obj == '24hdelay-offtime') {
                   if (data[obj] > 0) {
                     dt = new Date(data[obj] * 1000);
@@ -420,8 +429,9 @@
           </td>
         </tr>
         <tr>
-          <th colspan='5'>
-            <font size='-1'>Run now option</font>
+          <th colspan='5' class='status'>
+              <label id='status'>Run now option</label>
+<!--            <font size='-1'>Run now option</font> -->
           </th>
         </tr>
         <tr>

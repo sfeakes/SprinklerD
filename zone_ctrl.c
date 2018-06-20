@@ -1,5 +1,9 @@
 
-#include <wiringPi.h>
+#ifdef USE_WIRINGPI
+  #include <wiringPi.h>
+#else
+  #include "sd_GPIO.h"
+#endif
 
 #include "zone_ctrl.h"
 #include "config.h"
@@ -163,7 +167,7 @@ bool zc_start(/*zcRunType type,*/ int zone) {
   }
   logMessage (LOG_NOTICE, "Turning on Zone %d\n",zone);
   digitalWrite(_sdconfig_.zonecfg[zone].pin, _sdconfig_.zonecfg[zone].on_state );
-
+  _sdconfig_.eventToUpdateHappened = true;
   // store what's running 
 
   return true;
@@ -179,7 +183,7 @@ bool zc_stop(/*zcRunType type,*/ int zone) {
   }
   logMessage (LOG_NOTICE, "Turning off Zone %d\n",zone);
   digitalWrite(_sdconfig_.zonecfg[zone].pin, !_sdconfig_.zonecfg[zone].on_state );
-
+  _sdconfig_.eventToUpdateHappened = true;
   //_sdconfig_.zonecfg[zone]
   // turn off zone
 

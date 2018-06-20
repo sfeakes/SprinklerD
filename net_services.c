@@ -6,7 +6,11 @@
 //#include <sys/inotify.h>
 #include <net/if.h>
 
-#include <wiringPi.h>
+#ifdef USE_WIRINGPI
+  #include <wiringPi.h>
+#else
+  #include "sd_GPIO.h"
+#endif
 
 #include "mongoose.h"
 #include "utils.h"

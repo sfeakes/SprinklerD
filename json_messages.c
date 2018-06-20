@@ -3,7 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <wiringPi.h>
+#ifdef USE_WIRINGPI
+  #include <wiringPi.h>
+#else
+  #include "sd_GPIO.h"
+#endif
 
 #include "json_messages.h"
 #include "config.h"
@@ -42,13 +46,21 @@ int build_sprinkler_JSON(char* buffer, int size)
   int i;
   memset(&buffer[0], 0, size);
   int length = 0;
+  char status[30];
 
-  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"system\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"zones\" : \"%d\", \"24hdelay-offtime\" : %li", 
-                                    _sdconfig_.name, _sdconfig_.system?"on":"off",  
+  if(_sdconfig_.currentZone.type!=zcNONE)
+    sprintf(status,"Zone %d : time left %02d:%02d",_sdconfig_.currentZone.zone, _sdconfig_.currentZone.timeleft / 60, _sdconfig_.currentZone.timeleft % 60 );
+  else
+    status[0] = '\0';
+
+  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"system\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"zones\" : \"%d\", \"24hdelay-offtime\" : %li, \"status\" : \"%s\"", 
+                                    _sdconfig_.name, 
+                                    _sdconfig_.system?"on":"off",  
                                     _sdconfig_.delay24h?"on":"off", 
                                     _sdconfig_.currentZone.type==zcALL?"on":"off", 
                                     _sdconfig_.zones,
-                                    _sdconfig_.delay24h_time);
+                                    _sdconfig_.delay24h_time,
+                                    status);
       for (i=1; i <= _sdconfig_.zones ; i++)
       {
         length += sprintf(buffer+length,  ", \"z%d\" : \"%s\", \"z%d-runtime\" : %d, \"z%d-name\" : \"%s\" ", 
@@ -58,6 +70,7 @@ int build_sprinkler_JSON(char* buffer, int size)
                    _sdconfig_.zonecfg[i].default_runtime,
                    _sdconfig_.zonecfg[i].zone,
                    _sdconfig_.zonecfg[i].name);
+        //logMessage(LOG_DEBUG, "Zone %d, length %d limit %d\n",i,length,size);
       }
       length += sprintf(buffer+length, "}");
 

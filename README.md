@@ -20,15 +20,12 @@ It does support a master valve or pump. (ie turn on a master device with every z
 # TL;DR Install
 ## Quick instal if you are using Raspberry PI
 * There is a chance the pre-compiled binary will run, copy the git repo and run the install.sh script from the release directory. ie from the install directory `sudo ./release/install.sh`
-* It depends on WiringPI, so install that first `http://wiringpi.com/download-and-install/`
 * try to run it with :-
     * `sudo sprinklerd -v -d -c /etc/sprinklerd.conf`
     * If it runs, then start configuring it to your setup.
     * If it fails, try making the execuatable, below are some instructions.
 
 ## Making & Install
-* Depends on a linux computer and wiring pi.
-* install WiringPI first `http://wiringpi.com/download-and-install/`
 * Get a copy of the repo using git.
 * run make
 * run sudo make install
@@ -38,6 +35,15 @@ It does support a master valve or pump. (ie turn on a master device with every z
     * point a web browser to the IP of the box running sprinklerd
 * If all is good enable as service
     * sudo `systemctl start sprinklerd`
+## More Advanced make
+* sprinklerd uses it's own basic GPIO interaction through sysfs, this may not be enough for all types of relay boards, especially ones that require the use of the GPIO's internal pull-up or pull-down resistor. So sprkinlerd can make use or WiringPi which is a powerful GPIO library. 
+* To use WiringPi :-
+* install WiringPI first `http://wiringpi.com/download-and-install/`
+* Make sprinklerd with the below flag
+* `make USR_WIRINGPI=1`
+* Make sure to use the WPI_PIN and not GPIO_PIN in the configuration for the pin numbers.
+* you can also use GPIO_PULL_UPDN option in the configuration.
+
 
 ### Note:-
 The install script is designed for systemd / systemctl to run as a service or daemon. If you are using init / init-d then don't run the install script, install manually and the init-d script to use is in the xtras directory.

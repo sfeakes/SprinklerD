@@ -1,7 +1,16 @@
 # define the C compiler to use
 CC = gcc
 
-LIBS := -lwiringPi -lwiringPiDev -lm
+#USE_WIRINGPI := 1
+
+ifeq ($(USE_WIRINGPI),)
+  sd_GPIO_C := sd_GPIO.c
+else
+  #WPI_LIB := -D USE_WIRINGPI -lwiringPi -lwiringPiDev
+  WPI_LIB := -D USE_WIRINGPI -lwiringPi
+endif
+
+LIBS := $(WPI_LIB) -lm
 #LIBS := -lpthread -lwiringPi -lwiringPiDev -lm
 #LIBS := -lpthread -lwebsockets
 
@@ -17,7 +26,7 @@ CFLAGS = $(GCCFLAGS) -I. -I./minIni $(DBG) $(LIBS) -D MG_DISABLE_MD5 -D MG_DISAB
 
 
 # define the C source files
-SRCS = sprinkler.c utils.c config.c net_services.c json_messages.c zone_ctrl.c sd_cron.c mongoose.c minIni/minIni.c
+SRCS = sprinkler.c utils.c config.c net_services.c json_messages.c zone_ctrl.c sd_cron.c mongoose.c minIni/minIni.c $(sd_GPIO_C)
 TSRC = test.c config.c utils.c minIni/minIni.c
 
 # define the C object files 

@@ -5,7 +5,11 @@
 #include <sys/mount.h>
 #include <sys/statvfs.h>
 
-#include <wiringPi.h>
+#ifdef USE_WIRINGPI
+  #include <wiringPi.h>
+#else
+  #include "sd_GPIO.h"
+#endif
 
 #include "minIni.h"
 #include "utils.h"
@@ -263,7 +267,11 @@ void readCfg(char *inifile)
     for (i=0; i <= _sdconfig_.zones; i++)
     {
       sprintf(str, "ZONE:%d", i);
+#ifdef USE_WIRINGPI
+      int pin = ini_getl(str, "WPI_PIN", -1, inifile);
+#else
       int pin = ini_getl(str, "GPIO_PIN", -1, inifile);
+#endif
       if (pin != -1) {
         logMessage (LOG_DEBUG, "ZONE = %d\n", i);
         if (i==0) {
