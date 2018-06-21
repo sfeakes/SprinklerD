@@ -1,12 +1,38 @@
-{  
-  "Sprinklerd System": {
-    "id": "SprinklerdSystem",
-    "name": "System",
+{
+  "Sprinklerd Zones": {
+    "id": "SprinklerdZones",
+    "name": "Zones",
     "manufacturer": "Feakes Inc",
-    "model": "SprinklerdSystem",
+    "model": "SprinklerdZone",
     "services": [
       {
-        "name": "System",
+        "name": "Sprinklers",
+        "service": "IrrigationSystem",
+        "topic": {
+          "setActive": "sprinklerd/active/set",
+          "statusActive": "sprinklerd/active",
+          "statusInUse": "sprinklerd/zone/0",
+          "statusRemainingDuration": "sprinklerd/remainingduration",
+          "statusProgramMode": "sprinklerd/programmode"
+        },
+        "payload": {
+          "activeTrue": 1,
+          "activeFalse": 0,
+          "inUseTrue": 1
+        },
+        "config": {},
+        "props": {}
+      }
+    ]
+  },
+  "Sprinklerd System": {
+    "id": "SprinklerdCalendar",
+    "name": "Calendar",
+    "manufacturer": "Feakes Inc",
+    "model": "SprinklerdCalendar",
+    "services": [
+      {
+        "name": "Calendar",
         "service": "Switch",
         "topic": {
           "setOn": "sprinklerd/system/set",

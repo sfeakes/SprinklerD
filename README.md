@@ -40,7 +40,7 @@ It does support a master valve or pump. (ie turn on a master device with every z
 * To use WiringPi :-
 * install WiringPI first `http://wiringpi.com/download-and-install/`
 * Make sprinklerd with the below flag
-* `make USR_WIRINGPI=1`
+* `make USE_WIRINGPI=1`
 * Make sure to use the WPI_PIN and not GPIO_PIN in the configuration for the pin numbers.
 * you can also use GPIO_PULL_UPDN option in the configuration.
 
@@ -69,7 +69,7 @@ I have my own scripts to do this for me, and probably won't ever document or pub
 
 ## sprinklerd Configuration
 Please see the [sprinklerd.conf]
-(https://github.com/sfeakes/sprinklerd/blob/master/extras/sprinklerd.conf) 
+(https://github.com/sfeakes/sprinklerd/blob/master/release/sprinklerd.conf) 
 example in the release directory.  Many things are turned off by default, and you may need to enable or configure them for your setup.
 Specifically, make sure you configure your MQTT, Pool Equiptment Labels & Domoticz ID's in there, looking at the file it should be self explanatory. 
 
