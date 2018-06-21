@@ -107,26 +107,32 @@ Create a device for each piece of pool equiptment you have, eg Filter Pump, Spa 
 ```
 http://sprinklerd.ip.address:port?type=option&option=24hdelay&state=off
 ```
+```
 * // Info options
-* ?type=firstload                         // JSON status Include cal schedule
-* ?type=read                              // JSON status no need to include cal schedule
+<host>?type=firstload               // JSON status Include cal schedule
+<host>?type=read                    // JSON status no need to include cal schedule
+<host>?type=json                    // JSON full array style, need full parser to pass.
 
 *  // Cfg options
-* ?type=option&option=24hdelay&state=off  // turn off 24h delay
-* ?type=option&option=calendar&state=off  // turn off calendar
+<host>?type=option&option=24hdelay&state=off    // turn off 24h delay
+<host>?type=option&option=calendar&state=off    // turn off calendar
+<host>?type=option&option=24hdelay&state=reset  // reset time on 24h delay
 
 *  // Calendar
-* ?type=calcfg&day=3&zone=&time=07:00      // Use default water zone times
-* ?type=calcfg&day=2&zone=1&time=7         // Change water zone time
-* ?type=calcfg&day=3&zone=&time=           // Delete day schedule
+<host>?type=calcfg&day=3&zone=&time=07:00      // Use default water zone times
+<host>?type=calcfg&day=2&zone=1&time=7         // Change water zone time
+<host>?type=calcfg&day=3&zone=&time=           // Delete day schedule
   
 *  // Run options
-* ?type=option&option=allz&state=on        // Run all zones default times
-* ?type=zone&zone=2&state=on&runtime=3     // Run zone 2 for 3 mins (ignore 24h delay & calendar settings)
-* ?type=zrtcfg&zone=2&time=10              // change zone 2 default runtime to 10
-* ?type=cron&zone=1&runtime=12'            // Run zone 1 for 12 mins (calendar & 24hdelay settings overide this request)
-
-The JSON that's returned is completley flat, this is so it can be passed with really small lightweight passers, even grep and awk. I will eventually add a more complex JSON output that will make it better for people using fill JSON object passers.
+<host>?type=option&option=allz&state=on        // Run all zones default times
+<host>?type=zone&zone=2&state=on&runtime=3     // Run zone 2 for 3 mins (ignore 24h delay & calendar settings)
+<host>?type=zrtcfg&zone=2&time=10              // change zone 2 default runtime to 10
+<host>?type=cron&zone=1&runtime=12'            // Run zone 1 for 12 mins (calendar & 24hdelay settings overide this request)
+```
+The JSON that's returned is completley flat, this is so it can be passed with really small lightweight passers, even grep and awk. If you want a full JSON with arrays that's easier to use with full json parsers you can use the below
+```
+<host>?type=json
+```
 
 
 ## Apple HomeKit

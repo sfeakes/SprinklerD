@@ -367,7 +367,12 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
         length = build_sprinkler_JSON(buffer, size);
       } else if (strncasecmp(buf, "24hdelay", 8) == 0 ) {
         mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
-        enable_delay24h(is_value_ON(buf));
+        int val = is_value_ON(buf);
+        if (val == true || val == false) {
+          enable_delay24h(val);
+        } else if (strncasecmp(buf, "reset", 5) == 0) {
+          reset_delay24h_time();
+        }
         length = build_sprinkler_JSON(buffer, size);
       } else if (strncasecmp(buf, "allz", 8) == 0 ) {
         mg_get_http_var(&http_msg->query_string, "state", buf, buflen);

@@ -17,13 +17,19 @@
 
 #define LABEL_SIZE 40
 #define NON_ZONE_DZIDS 3
+#define COMMAND_SIZE 512
 
 struct CALENDARday {
   int hour;
   int minute;
   int *zruntimes;
 };
-
+/*
+struct GPIOextra {
+  char command_high[COMMAND_SIZE];
+  char command_low[COMMAND_SIZE];
+};
+*/
 struct GPIOcfg {
   int pin;
   int input_output;
@@ -37,10 +43,11 @@ struct GPIOcfg {
   int startup_state;
   int shutdown_state;
   int dz_idx;
-  int ignore_requests;
+  //int ignore_requests;
   int zone;
   int default_runtime;
   bool master_valve;
+  //struct GPIOextra *extra;
 };
 
 struct DZcache {
@@ -64,14 +71,15 @@ struct sprinklerdcfg {
   int dzidx_allzones;
   bool enableMQTTdz;
   bool enableMQTTaq;
-  int pinscfgs;
   int zones;
+  //int pincfgs;
   bool system;
   bool delay24h;
   long delay24h_time;
   bool master_valve;
   struct DZcache *dz_cache;
   struct GPIOcfg *zonecfg;
+  //struct GPIOcfg *gpiocfg;
   struct CALENDARday cron[7];
   //time_t cron_update;
   long cron_update;

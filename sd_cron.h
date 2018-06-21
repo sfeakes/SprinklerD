@@ -12,6 +12,7 @@ void write_cron();
 void read_cron();
 void enable_delay24h(bool state);
 bool check_delay24h();
+void reset_delay24h_time();
 void enable_system(bool state);
 
 #endif // SD_CRON_H_

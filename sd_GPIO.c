@@ -4,55 +4,136 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
-/*
 #include <stdint.h>
-#include <sys/time.h>
-#include <poll.h>
-#include <pthread.h>
-*/
-#include "sd_GPIO.h"
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <time.h>
+
 #include "utils.h"
- 
-bool pinExport(int pin)
-{
+#include "sd_GPIO.h"
 
-	char buffer[SYSFS_READ_MAX];
-	ssize_t bytes_written;
-	int fd;
- 
-	fd = open("/sys/class/gpio/export", O_WRONLY);
-	if (-1 == fd) {
-		//fprintf(stderr, "Failed to open export for writing!\n");
-    logMessage (LOG_ERR, "Failed to open '/sys/class/gpio/export' for writing!\n"); 
-		return false;
-	}
- 
-	bytes_written = snprintf(buffer, SYSFS_READ_MAX, "%d", pin);
-	write(fd, buffer, bytes_written);
-	close(fd);
-	return true;
-}
- 
-bool pinUnexport(int pin)
+#ifndef GPIO_SYSFS_MODE
+
+static volatile uint32_t  * _gpioReg = MAP_FAILED;
+static bool _ever = false;
+
+void gpioDelay (unsigned int howLong) // Microseconds (1000000 = 1 second)
 {
-	char buffer[SYSFS_READ_MAX];
-	ssize_t bytes_written;
-	int fd;
- 
-	fd = open("/sys/class/gpio/unexport", O_WRONLY);
-	if (-1 == fd) {
-		//fprintf(stderr, "Failed to open unexport for writing!\n");
-    logMessage (LOG_ERR, "Failed to open '/sys/class/gpio/unexport' for writing!\n");
-		return false;
-	}
- 
-	bytes_written = snprintf(buffer, SYSFS_READ_MAX, "%d", pin);
-	write(fd, buffer, bytes_written);
-	close(fd);
-	return true;
+  struct timespec sleeper, dummy ;
+
+  sleeper.tv_sec  = (time_t)(howLong / 1000) ;
+  sleeper.tv_nsec = (long)(howLong % 1000) * 1000000 ;
+
+  nanosleep (&sleeper, &dummy) ;
 }
 
-bool pinMode (int pin, int mode)
+bool gpioSetup() {
+	int fd;
+
+   fd = open("/dev/mem", O_RDWR | O_SYNC);
+
+   if (fd<0)
+   {
+			logMessage (LOG_ERR, "Failed to open '/dev/mem' for GPIO access (are we root?)\n"); 
+      return false;
+   }
+
+   _gpioReg = mmap
+   (
+      0,
+      GPIO_LEN,
+      PROT_READ|PROT_WRITE|PROT_EXEC,
+      MAP_SHARED|MAP_LOCKED,
+      fd,
+      GPIO_BASE);
+
+   close(fd);
+
+  _ever = true;
+
+	 return true;
+}
+
+int pinMode(unsigned gpio, unsigned mode) {
+  int reg, shift;
+
+  reg = gpio / 10;
+  shift = (gpio % 10) * 3;
+
+  _gpioReg[reg] = (_gpioReg[reg] & ~(7 << shift)) | (mode << shift);
+
+  return true;
+}
+
+int getPinMode(unsigned gpio) {
+  int reg, shift;
+
+  reg = gpio / 10;
+  shift = (gpio % 10) * 3;
+
+  return (*(_gpioReg + reg) >> shift) & 7;
+}
+
+int digitalRead(unsigned gpio) {
+  unsigned bank, bit;
+
+  bank = gpio >> 5;
+
+  bit = (1 << (gpio & 0x1F));
+
+  if ((*(_gpioReg + GPLEV0 + bank) & bit) != 0)
+    return 1;
+  else
+    return 0;
+}
+
+int digitalWrite(unsigned gpio, unsigned level) {
+  unsigned bank, bit;
+
+  bank = gpio >> 5;
+
+  bit = (1 << (gpio & 0x1F));
+
+  if (level == 0)
+    *(_gpioReg + GPCLR0 + bank) = bit;
+  else
+    *(_gpioReg + GPSET0 + bank) = bit;
+
+  return 0;
+}
+
+int setPullUpDown(unsigned gpio, unsigned pud)
+{
+	unsigned bank, bit;
+
+  bank = gpio >> 5;
+
+  bit = (1 << (gpio & 0x1F));
+
+	/*
+   if (gpio > PI_MAX_GPIO)
+      SOFT_ERROR(PI_BAD_GPIO, "bad gpio (%d)", gpio);
+*/
+   if (pud > PUD_UP || pud < PUD_OFF)
+	   return false;
+      //SOFT_ERROR(PI_BAD_PUD, "gpio %d, bad pud (%d)", gpio, pud);
+
+   *(_gpioReg + GPPUD) = pud;
+   gpioDelay(1);
+   *(_gpioReg + GPPUDCLK0 + bank) = bit;
+   gpioDelay(1);
+   *(_gpioReg + GPPUD) = 0;
+
+   *(_gpioReg + GPPUDCLK0 + bank) = 0;
+
+   return true;
+}
+#else
+
+bool gpioSetup() {return true;}
+
+int pinMode (unsigned pin, unsigned mode)
 {
 	//static const char s_directions_str[]  = "in\0out\0";
 
@@ -85,7 +166,7 @@ bool pinMode (int pin, int mode)
 	return true;
 }
  
-int digitalRead (int pin)
+int digitalRead (unsigned pin)
 {
 	char path[SYSFS_PATH_MAX];
 	char value_str[SYSFS_READ_MAX];
@@ -111,7 +192,7 @@ int digitalRead (int pin)
 	return(atoi(value_str));
 }
 
-bool digitalWrite (int pin, int value)
+int digitalWrite (unsigned pin, unsigned value)
 {
 	//static const char s_values_str[] = "01";
  
@@ -137,35 +218,157 @@ bool digitalWrite (int pin, int value)
 	close(fd);
 	return true;
 }
+#endif
 
-/*
-int waitForInterrupt (int pin, int mS)
+bool isExported(unsigned pin)
 {
-  char path[SYSFS_PATH_MAX];
-  int fd, x ;
+	char path[SYSFS_PATH_MAX];
+	struct stat sb;
+
+	snprintf(path, SYSFS_PATH_MAX, "/sys/class/gpio/gpio%d/", pin);
+
+  if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode))
+    return true;
+	else
+	  return false;
+}
+
+bool pinExport(unsigned pin)
+{
+
+	char buffer[SYSFS_READ_MAX];
+	ssize_t bytes_written;
+	int fd;
+ 
+	fd = open("/sys/class/gpio/export", O_WRONLY);
+	if (-1 == fd) {
+		//fprintf(stderr, "Failed to open export for writing!\n");
+    logMessage (LOG_ERR, "Failed to open '/sys/class/gpio/export' for writing!\n"); 
+		return false;
+	}
+ 
+	bytes_written = snprintf(buffer, SYSFS_READ_MAX, "%d", pin);
+	write(fd, buffer, bytes_written);
+	close(fd);
+	return true;
+}
+ 
+bool pinUnexport(unsigned pin)
+{
+	char buffer[SYSFS_READ_MAX];
+	ssize_t bytes_written;
+	int fd;
+ 
+	fd = open("/sys/class/gpio/unexport", O_WRONLY);
+	if (-1 == fd) {
+		//fprintf(stderr, "Failed to open unexport for writing!\n");
+    logMessage (LOG_ERR, "Failed to open '/sys/class/gpio/unexport' for writing!\n");
+		return false;
+	}
+ 
+	bytes_written = snprintf(buffer, SYSFS_READ_MAX, "%d", pin);
+	write(fd, buffer, bytes_written);
+	close(fd);
+	return true;
+}
+
+bool edgeSetup (unsigned pin, unsigned value)
+{
+	//static const char s_values_str[] = "01";
+ 
+	char path[SYSFS_PATH_MAX];
+	int fd;
+ 
+	snprintf(path, SYSFS_PATH_MAX, "/sys/class/gpio/gpio%d/edge", pin);
+	fd = open(path, O_WRONLY);
+	if (-1 == fd) {
+		//fprintf(stderr, "Failed to open gpio value for writing!\n");
+    logMessage (LOG_ERR, "Failed to open gpio '%s' for writing!\n",path);
+		return false;
+	}
+
+  int rtn = 0;
+  if (value==INT_EDGE_RISING)
+		rtn = write(fd, "rising", 6);
+	else if (value==INT_EDGE_FALLING)
+		rtn = write(fd, "falling", 7);
+	else if (value==INT_EDGE_BOTH)
+		rtn = write(fd, "both", 4);
+	else
+	  rtn = write(fd, "none", 4);
+ 
+  if (rtn <= 0) {
+    logMessage (LOG_ERR, "Failed to setup edge on '%s'!\n",path);
+    displayLastSystemError("");
+		return false;
+	}
+ 
+	close(fd);
+	return true;
+}
+
+#include <poll.h>
+#include <pthread.h> 
+#include <sys/ioctl.h>
+
+struct threadGPIOinterupt{
+	void (*function)(void *args);
+	void *args;
+	unsigned pin;
+};
+static pthread_mutex_t pinMutex ;
+
+#define MAX_FDS 64
+static unsigned int _sysFds [MAX_FDS] =
+{
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+} ;
+
+void pushSysFds(int fd)
+{
+	int i;
+	for (i=0; i< MAX_FDS; i++) {
+		if (_sysFds[i] == -1) {
+      _sysFds[i] = fd;
+			return;
+		}
+	}
+}
+
+void gpioShutdown() {
+	int i;
+	_ever = false;
+
+	for (i=0; i< MAX_FDS; i++) {
+		if (_sysFds[i] != -1) {
+			printf("Closing fd\n");
+      close(_sysFds[i]);
+			_sysFds[i] = -1;
+		} else {
+			break;
+		}
+	}
+}
+
+int waitForInterrupt (int pin, int mS, int fd)
+{
+	int x;
   uint8_t c ;
   struct pollfd polls ;
-  //struct pollfd pfd;
 
-  sprintf(path, "/sys/class/gpio/gpio%d/value", pin);
-
-   if ((fd = open(path, O_RDONLY)) < 0)
-   {
-      logMessage (LOG_ERR, "Failed to open '%s'!\n",path);
-      return -2;
-   }
-
-// Setup poll structure
-
+  // Setup poll structure
   polls.fd     = fd ;
-  polls.events = POLLPRI | POLLERR ;
+  polls.events = POLLPRI | POLLERR | POLLHUP | POLLNVAL;
 
-// Wait for it ...
-
+  // Wait for something ...
+  
   x = poll (&polls, 1, mS) ;
 
-// If no error, do a dummy read to clear the interrupt
-//	A one character read appars to be enough.
+  // If no error, do a dummy read to clear the interrupt
+  //	A one character read appars to be enough.
 
   if (x > 0)
   {
@@ -176,62 +379,98 @@ int waitForInterrupt (int pin, int mS)
   return x ;
 }
 
-
-static volatile int    pinPass = -1 ;
-static volatile void(*functionPass);
-static volatile char(*argsPass);
-
-static pthread_mutex_t pinMutex ;
-
 static void *interruptHandler (void *arg)
 {
-  int myPin ;
+  struct threadGPIOinterupt *stuff = (struct threadGPIOinterupt *) arg;
+	int pin = stuff->pin;
+	void (*function)(void *args) = stuff->function;
+	void *args = stuff->args;
+	stuff->pin = -1;
 
-  //(void)piHiPri (55) ;	// Only effective if we run as root
+	char path[SYSFS_PATH_MAX];
+  int fd, count, i ;
+  uint8_t c ;
 
-  myPin   = pinPass ;
-  pinPass = -1 ;
+  sprintf(path, "/sys/class/gpio/gpio%d/value", pin);
 
-  for (;;)
-    if (waitForInterrupt (myPin, -1) > 0)
-      printf("READ SOMETHING\n");
-      //(*function)(arg);
+  if ((fd = open(path, O_RDONLY)) < 0)
+  {
+    logMessage (LOG_ERR, "Failed to open '%s'!\n",path);
+    return NULL;
+  }
 
+	pushSysFds(fd);
+
+  // Clear any initial pending interrupt
+	ioctl (fd, FIONREAD, &count) ;
+  for (i = 0 ; i < count ; ++i)
+    read (fd, &c, 1);
+
+  while (_ever == true) {
+    if (waitForInterrupt (pin, -1, fd) > 0) {
+			function(args);
+		} else {
+			printf("SOMETHING FAILED, reset\n");
+			gpioDelay(1);
+		}
+	}
+
+  printf("interruptHandler ended\n");
+
+  close(fd);
   return NULL ;
 }
 
 
-bool registerGPIOinterrupt(int pin, int mode, void (*function)(char *), void (*args) ) 
+bool registerGPIOinterrupt(int pin, int mode, void (*function)(void *args), void *args ) 
 {
   pthread_t threadId ;
-  // Clear any initial pending interrupt
+	struct threadGPIOinterupt stuff;
+	// Check it's exported
+	if (! isExported(pin))
+	  pinExport(pin);
 
-  pinPass = pin ;
+  // if the pin is putput, set as input to setup edge then reset to output.
+  if (getPinMode(pin) == OUTPUT) {
+		pinMode(pin, INPUT);
+		edgeSetup(pin, mode);
+		pinMode(pin, OUTPUT);
+	} else {
+	  edgeSetup(pin, mode);
+	}
+
+  stuff.function = function;
+	stuff.args = args;
+	stuff.pin = pin;
 
   pthread_mutex_lock (&pinMutex) ;
-    if (pthread_create (&threadId, NULL, interruptHandler, NULL) < 0) 
+    if (pthread_create (&threadId, NULL, interruptHandler, (void *)&stuff) < 0) 
       return false;
     else {
-      while (pinPass != -1)
-      delay (1) ;
+			while (stuff.pin == pin)
+			gpioDelay(1);
     }
 
   pthread_mutex_unlock (&pinMutex) ;
 
   return true ;
 }
-*/
 
 
+//#define TEST_HARNESS
 
+#ifdef TEST_HARNESS
 
-
-
-
-/*
 #include <stdarg.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
+
+void *myCallBack(void * args) {
+  printf("Ping\n");
+	//struct threadGPIOinterupt *stuff = (struct threadGPIOinterupt *) args;
+	//printf("Pin is %d\n",stuff->pin);
+}
 
 void logMessage(int level, char *format, ...)
 {
@@ -261,13 +500,36 @@ void displayLastSystemError (const char *on_what)
 #define PIN  4
 #define POUT  27
 int main(int argc, char *argv[]) {
-  int repeat = 10;
+  int repeat = 3;
 
   // if (-1 == GPIOExport(POUT) || -1 == GPIOExport(PIN))
   //              return(1);
+  gpioSetup();
+/*
+	pinUnexport(POUT);
+	pinUnexport(PIN);
+	pinExport(POUT);
+	pinExport(PIN);
+
+  sleep(1);
+*/
+	//edgeSetup(POUT, INT_EDGE_BOTH);
 
   if (-1 == pinMode(POUT, OUTPUT) || -1 == pinMode(PIN, INPUT))
     return (2);
+
+  //edgeSetup(PIN, INT_EDGE_RISING);
+  //edgeSetup(POUT, INT_EDGE_RISING);
+
+  if (pinExport(POUT) != true) 
+		printf("Error exporting pin\n");
+	
+  if (registerGPIOinterrupt(POUT, INT_EDGE_RISING, (void *)&myCallBack, (void *)&repeat ) != true)
+	  printf("Error registering interupt\n");
+
+	if (registerGPIOinterrupt(PIN, INT_EDGE_RISING, (void *)&myCallBack, (void *)&repeat ) != true)
+	  printf("Error registering interupt\n");
+	
 
   do {
 
@@ -282,9 +544,15 @@ int main(int argc, char *argv[]) {
     usleep(500 * 1000);
   } while (repeat--);
 
+  gpioShutdown();
+	
+  sleep(1);
+
   if (-1 == pinUnexport(POUT) || -1 == pinUnexport(PIN))
     return (4);
 
+  sleep(1);
+
   return (0);
 }
-*/
+#endif

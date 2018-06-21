@@ -7,14 +7,15 @@
 
 #ifdef USE_WIRINGPI
   #include <wiringPi.h>
+  #define PIN_CFG_NAME "WPI_PIN"
 #else
   #include "sd_GPIO.h"
+  #define PIN_CFG_NAME "GPIO_PIN"
 #endif
 
 #include "minIni.h"
 #include "utils.h"
 #include "config.h"
-
 
 
 #define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
@@ -249,7 +250,7 @@ void readCfg(char *inifile)
   for (i=1; i <= 24; i++) // 24 = Just some arbutary number (max GPIO without expansion board)
   {
     sprintf(str, "ZONE:%d", i);
-    pin = ini_getl(str, "GPIO_PIN", -1, inifile);
+    pin = ini_getl(str, PIN_CFG_NAME, -1, inifile);
     if (pin == -1)
       break;
     else
@@ -267,11 +268,7 @@ void readCfg(char *inifile)
     for (i=0; i <= _sdconfig_.zones; i++)
     {
       sprintf(str, "ZONE:%d", i);
-#ifdef USE_WIRINGPI
-      int pin = ini_getl(str, "WPI_PIN", -1, inifile);
-#else
-      int pin = ini_getl(str, "GPIO_PIN", -1, inifile);
-#endif
+      pin = ini_getl(str, PIN_CFG_NAME, -1, inifile);
       if (pin != -1) {
         logMessage (LOG_DEBUG, "ZONE = %d\n", i);
         if (i==0) {
@@ -307,8 +304,8 @@ void readCfg(char *inifile)
       }
     }
     
-    _sdconfig_.pinscfgs = idx;
-    logMessage (LOG_DEBUG,"Config: total GPIO pins = %d\n",_sdconfig_.pinscfgs);
+    //_sdconfig_.pinscfgs = idx;
+    //logMessage (LOG_DEBUG,"Config: total GPIO pins = %d\n",_sdconfig_.pinscfgs);
 
     _sdconfig_.cron[0].zruntimes = malloc(_sdconfig_.zones * sizeof(int));
     _sdconfig_.cron[1].zruntimes = malloc(_sdconfig_.zones * sizeof(int));
@@ -323,4 +320,43 @@ void readCfg(char *inifile)
     logMessage (LOG_ERR," no config zones set\n");
     exit (EXIT_FAILURE);
   }
+/*
+  idx=0;
+  pin=-1;
+  // Caculate how many gpio cfg we have
+  for (i=1; i <= 24; i++) // 24 = Just some arbutary number (max GPIO without expansion board)
+  {
+    sprintf(str, "GPIO:%d", i);
+    pin = ini_getl(str, PIN_CFG_NAME, -1, inifile);
+    if (pin == -1)
+      break;
+    else
+      _sdconfig_.pincfgs = i;
+  }
+  
+  logMessage (LOG_DEBUG, "Found %d GPIO PINS\n", _sdconfig_.pincfgs);
+
+  if ( _sdconfig_.pincfgs != 0) {
+  //  n= _sdconfig_.zones+1;
+    _sdconfig_.gpiocfg = malloc((_sdconfig_.pincfgs + 1) * sizeof(struct GPIOcfg));
+    for (i=0; i <= _sdconfig_.pincfgs; i++)
+    {
+      sprintf(str, "GPIO:%d", i);
+      int pin = ini_getl(str, PIN_CFG_NAME, -1, inifile);
+
+      if (pin != -1) {
+        logMessage (LOG_DEBUG, "ZONE = %d\n", i);
+        _sdconfig_.pincfgs[i].input_output = OUTPUT; // Zone is always output 
+        _sdconfig_.pincfgs[i].receive_mode = BOTH; // Zone always needs trigger on both (high or low)
+
+        ini_gets(str, "NAME", NULL, _sdconfig_.pincfgs[idx].name, sizearray(_sdconfig_.pincfgs[idx].name), inifile);
+        _sdconfig_.pincfgs[i].pin = pin;
+        _sdconfig_.pincfgs[i].on_state = ini_getl(str, "GPIO_ON_STATE", NO, inifile);
+        _sdconfig_.pincfgs[i].startup_state = !_sdconfig_.pincfgs[i].on_state;
+        _sdconfig_.pincfgs[i].shutdown_state = !_sdconfig_.pincfgs[i].on_state;
+
+        _sdconfig_.pincfgs[i].set_pull_updown = ini_getl(str, "GPIO_PULL_UPDN", -1, inifile);
+      }
+    }
+*/
 }

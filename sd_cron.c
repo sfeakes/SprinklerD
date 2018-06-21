@@ -52,6 +52,18 @@ void enable_delay24h(bool state)
   }
 }
 
+void reset_delay24h_time()
+{
+  if (_sdconfig_.delay24h != true) {
+    _sdconfig_.eventToUpdateHappened = true;
+  }
+
+  _sdconfig_.delay24h = true;
+  time(&_sdconfig_.delay24h_time);
+  _sdconfig_.delay24h_time =  _sdconfig_.delay24h_time + DELAY24H_SEC;
+  logMessage(LOG_NOTICE, "Reset rain Delay\n");
+}
+
 void check_cron() {
   if (_sdconfig_.cron_update > 0) {
     logMessage(LOG_DEBUG, "Checking if CRON needs to be updated\n");

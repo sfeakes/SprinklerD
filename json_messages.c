@@ -80,7 +80,7 @@ int build_sprinkler_JSON(char* buffer, int size)
 
 int build_advanced_sprinkler_JSON(char* buffer, int size)
 {
-  int i;
+  int i, day;
   memset(&buffer[0], 0, size);
   int length = 0;
 
@@ -102,8 +102,27 @@ int build_advanced_sprinkler_JSON(char* buffer, int size)
                                       _sdconfig_.zonecfg[i].default_runtime
                                       );
   }
+  if (_sdconfig_.currentZone.type != zcNONE)
+    length += sprintf(buffer+length,  "\"active\": {\"zone\": %d, \"name\": \"%s\"},",_sdconfig_.currentZone.zone, _sdconfig_.zonecfg[_sdconfig_.currentZone.zone].name);
 
-  length += sprintf(buffer+length-1, "}}");
+  length -= 1;
+  length += sprintf( buffer+length ,  "}, \"calendar\": {" );
+
+  for (day=0; day <= 6; day++) {
+    if (_sdconfig_.cron[day].hour >= 0 && _sdconfig_.cron[day].minute >= 0) {
+      length += sprintf(buffer+length, "\"day %d\" : { \"start time\" : \"%.2d:%.2d\", ",day,_sdconfig_.cron[day].hour,_sdconfig_.cron[day].minute);
+      for (i=0; i < _sdconfig_.zones; i ++) {
+        if (_sdconfig_.cron[day].zruntimes[i] >= 0) {
+          length += sprintf(buffer+length, "\"Zone %d\" : %d,",i+1,_sdconfig_.cron[day].zruntimes[i]);
+          //logMessage(LOG_DEBUG, "Zone %d, length %d limit %d\n",i+1,length,size);
+        }
+      }
+      length -= 1;
+      length += sprintf(buffer+length,  "},");
+    }
+  }
+  length -= 1;
+  length += sprintf(buffer+length, "}}");
 
   buffer[length] = '\0';
   return strlen(buffer);

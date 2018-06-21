@@ -10,7 +10,7 @@ else
   WPI_LIB := -D USE_WIRINGPI -lwiringPi
 endif
 
-LIBS := $(WPI_LIB) -lm
+LIBS := $(WPI_LIB) -lm -lpthread
 #LIBS := -lpthread -lwiringPi -lwiringPiDev -lm
 #LIBS := -lpthread -lwebsockets
 

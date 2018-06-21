@@ -248,17 +248,30 @@ void main_loop ()
   }
 #else
   logMessage(LOG_DEBUG, "Setting up GPIO\n");
+
+  gpioSetup();
+
   for (i=(_sdconfig_.master_valve?0:1); i <= _sdconfig_.zones ; i++)
   {
     logMessage (LOG_DEBUG, "Setting up Zone %d\n", i);
 
+#ifdef GPIO_SYSFS_MODE
+    // Only need to export and gain control if in sysfs mode.
     pinUnexport(_sdconfig_.zonecfg[i].pin);
     pinExport(_sdconfig_.zonecfg[i].pin);
+#endif
 
     pinMode (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].input_output);
     if ( _sdconfig_.zonecfg[i].startup_state != -1)
       digitalWrite(_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].startup_state);
-
+/*
+   // We actually don't need to register a interupt handeler for outputs.  But we will for inputs, so leave this here for future use.
+    if (registerGPIOinterrupt (_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].receive_mode, (void *)&event_trigger, (void *)&_sdconfig_.zonecfg[i]) != true)
+    {
+      displayLastSystemError ("Unable to set interrupt handler for specified pin, exiting");
+      exit (EXIT_FAILURE);
+    }
+*/
     logMessage (LOG_DEBUG, "Set GPIO %d to %s\n", _sdconfig_.zonecfg[i].pin,(_sdconfig_.zonecfg[i].input_output==OUTPUT?"OUTPUT":"INPUT") );
 
   }
@@ -326,6 +339,9 @@ void Daemon_Stop (int signum)
       digitalWrite(_sdconfig_.zonecfg[i].pin, _sdconfig_.zonecfg[i].shutdown_state);
     }
   }
+#ifndef USE_WIRINGPI
+  gpioSetup();
+#endif
   /*
 #ifdef PTHREAD  
   logMessage (LOG_INFO, "Stopping httpd threads!\n"); 
@@ -341,7 +357,6 @@ void intHandler(int signum) {
   int i;
   //syslog (LOG_INFO, "Stopping");
   logMessage (LOG_INFO, "Stopping!\n");
-
   for (i=(_sdconfig_.master_valve?0:1); i <= _sdconfig_.zones ; i++)
   {
     if ( _sdconfig_.zonecfg[i].shutdown_state == 0 || _sdconfig_.zonecfg[i].shutdown_state == 1 ) {
@@ -350,6 +365,10 @@ void intHandler(int signum) {
     }
   }
   
+#ifndef USE_WIRINGPI
+  gpioSetup();
+#endif
+
   close(server_sock);
   write_cache();
   /*
