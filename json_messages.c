@@ -143,6 +143,18 @@ int build_dz_mqtt_status_JSON(char* buffer, int size, int idx, int nvalue, float
   return strlen(buffer);
 }
 
+int build_dz_status_message_JSON(char* buffer, int size, int idx, int nvalue, char *svalue)
+{
+  memset(&buffer[0], 0, size);
+  int length = 0;
+  //json.htm?type=command&param=udevice&idx=IDX&nvalue=LEVEL&svalue=TEXT
+
+  length = sprintf(buffer, "{\"idx\":%d,\"nvalue\":%d,\"svalue\":\"%s\"}", idx, nvalue, svalue);
+
+  buffer[length] = '\0';
+  return strlen(buffer);
+}
+
 bool parseJSONmqttrequest(const char *str, size_t len, int *idx, int *nvalue, char *svalue) {
   int i = 0;
   int found = 0;

@@ -47,6 +47,7 @@ bool zc_check() {
       zc_start(_sdconfig_.currentZone.zone);
       time(&_sdconfig_.currentZone.started_time);
       _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime;
+      calc_timeleft();
     } else {
       zc_master(zcOFF);
       zc_stop(_sdconfig_.currentZone.zone);

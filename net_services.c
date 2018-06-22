@@ -210,6 +210,32 @@ void publish_zone_mqtt(struct mg_connection *nc, struct GPIOcfg *gpiopin) {
   }
 }
 
+int sprinklerdstatus(char *status, int length)
+{
+  // Status in this order
+  // Zone active and run time
+  // 24h delay and end time
+  // calendar schedule
+  // off
+
+  if (_sdconfig_.currentZone.type != zcNONE) {
+    sprintf(status,"Running: Zone %d - time left %02d:%02d",_sdconfig_.currentZone.zone, _sdconfig_.currentZone.timeleft / 60, _sdconfig_.currentZone.timeleft % 60 );
+    return 1;
+  } else if (_sdconfig_.delay24h == true) {
+    struct tm * timeinfo = localtime (&_sdconfig_.delay24h_time);
+    strftime (status,length,"24h delay: end time %a %I:%M%p",timeinfo);
+    return 3;
+  } else if (_sdconfig_.system == true) {
+    sprintf(status,"Calendar schedule");
+    return 2;
+  } else {
+    sprintf(status,"OFF");
+    return 0;
+  }
+
+  return 0;
+}
+
 void broadcast_zonestate(struct mg_connection *nc, struct GPIOcfg *gpiopin) 
 {
   //logMessage(LOG_DEBUG, "broadcast_gpiopinstate()\n"); 
@@ -245,6 +271,9 @@ void broadcast_sprinklerdactivestate(struct mg_connection *nc)
       sprintf(mqtt_topic, "%s/remainingduration", _sdconfig_.mqtt_topic);
       sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft );
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      sprintf(mqtt_topic, "%s/status", _sdconfig_.mqtt_topic);
+      sprinklerdstatus(mqtt_msg, 50);
+      send_mqtt_msg(c, mqtt_topic, mqtt_msg);
     }
   }
 }
@@ -279,6 +308,9 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
       sprintf(mqtt_topic, "%s/cycleallzones", _sdconfig_.mqtt_topic);
       sprintf(mqtt_msg, "%s", (_sdconfig_.currentZone.type==zcALL?MQTT_ON:MQTT_OFF) );
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      sprintf(mqtt_topic, "%s/status", _sdconfig_.mqtt_topic);
+      sprinklerdstatus(mqtt_msg, 50);
+      send_mqtt_msg(c, mqtt_topic, mqtt_msg);
      }
      if (_sdconfig_.enableMQTTdz == true) {
       if (_sdconfig_.dzidx_system > 0 && update_dz_cache(_sdconfig_.dzidx_system,(_sdconfig_.system==true ? DZ_ON : DZ_OFF) )) {
@@ -292,6 +324,11 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
       if (_sdconfig_.dzidx_allzones > 0 && update_dz_cache(_sdconfig_.dzidx_allzones,(_sdconfig_.currentZone.type==zcALL ? DZ_ON : DZ_OFF) )) {
         build_dz_mqtt_status_JSON(mqtt_msg, 50, _sdconfig_.dzidx_allzones, (_sdconfig_.currentZone.type==zcALL ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
         send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_msg);
+      }
+      if (_sdconfig_.dzidx_status > 0) {
+        int value =sprinklerdstatus(mqtt_msg, 50);
+        build_dz_status_message_JSON(mqtt_topic, 250, _sdconfig_.dzidx_status, value, mqtt_msg);
+        send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_topic);
       }
      }
     }

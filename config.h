@@ -69,6 +69,7 @@ struct sprinklerdcfg {
   int dzidx_system;
   int dzidx_24hdelay;
   int dzidx_allzones;
+  int dzidx_status;
   bool enableMQTTdz;
   bool enableMQTTaq;
   int zones;
