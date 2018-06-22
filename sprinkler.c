@@ -143,7 +143,7 @@ int main (int argc, char *argv[])
 
   logMessage(LOG_NOTICE,"Starting %s version %s\n",argv[0],SD_VERSION);
 
-  _sdconfig_.system = true;
+  _sdconfig_.calendar = true;
   _sdconfig_.currentZone.type = zcNONE;
   _sdconfig_.cron_update = 0;
   _sdconfig_.eventToUpdateHappened = false;

@@ -53,9 +53,9 @@ int build_sprinkler_JSON(char* buffer, int size)
   else
     status[0] = '\0';
 
-  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"system\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"zones\" : \"%d\", \"24hdelay-offtime\" : %li, \"status\" : \"%s\"", 
+  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"calendar\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"zones\" : \"%d\", \"24hdelay-offtime\" : %li, \"status\" : \"%s\"", 
                                     _sdconfig_.name, 
-                                    _sdconfig_.system?"on":"off",  
+                                    _sdconfig_.calendar?"on":"off",  
                                     _sdconfig_.delay24h?"on":"off", 
                                     _sdconfig_.currentZone.type==zcALL?"on":"off", 
                                     _sdconfig_.zones,
@@ -84,8 +84,8 @@ int build_advanced_sprinkler_JSON(char* buffer, int size)
   memset(&buffer[0], 0, size);
   int length = 0;
 
-  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"system\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"#zones\" : %d, \"24hdelay-offtime\" : %li", 
-                                    _sdconfig_.name, _sdconfig_.system?"on":"off",  
+  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"calendar\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"#zones\" : %d, \"24hdelay-offtime\" : %li", 
+                                    _sdconfig_.name, _sdconfig_.calendar?"on":"off",  
                                     _sdconfig_.delay24h?"on":"off", 
                                     _sdconfig_.currentZone.type==zcALL?"on":"off", 
                                     _sdconfig_.zones,

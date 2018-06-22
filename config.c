@@ -55,7 +55,7 @@ void write_cache() {
     return;
   }
 
-  fprintf(fp, "%d\n", _sdconfig_.system);
+  fprintf(fp, "%d\n", _sdconfig_.calendar);
   fprintf(fp, "%d\n", _sdconfig_.delay24h);
   fprintf(fp, "%li\n", _sdconfig_.delay24h_time);
   for (zone=1; zone <= _sdconfig_.zones; zone ++) {
@@ -80,8 +80,8 @@ void read_cache() {
   }
   while (EOF != fscanf (fp, "%d", &i)) {
     if (c == 0){
-      _sdconfig_.system = i;
-      logMessage(LOG_DEBUG, "Read System '%s' from cache\n", _sdconfig_.system?"ON":"OFF");
+      _sdconfig_.calendar = i;
+      logMessage(LOG_DEBUG, "Read calendar '%s' from cache\n", _sdconfig_.calendar?"ON":"OFF");
     } else if (c == 1){
       _sdconfig_.delay24h = i;
       logMessage(LOG_DEBUG, "Read delay24h '%s' from cache\n", _sdconfig_.delay24h?"ON":"OFF");
@@ -234,7 +234,7 @@ void readCfg(char *inifile)
     logMessage (LOG_DEBUG,"Config mqtt 'disabeled'\n");
   }
 
-  _sdconfig_.dzidx_system = ini_getl("SPRINKLERD", "DZIDX_SYSTEM", 0, inifile);
+  _sdconfig_.dzidx_calendar = ini_getl("SPRINKLERD", "DZIDX_CALENDAR", 0, inifile);
   _sdconfig_.dzidx_24hdelay = ini_getl("SPRINKLERD", "DZIDX_24HDELAY", 0, inifile);
   _sdconfig_.dzidx_allzones = ini_getl("SPRINKLERD", "DZIDX_ALL_ZONES", 0, inifile);
   _sdconfig_.dzidx_status = ini_getl("SPRINKLERD", "DZIDX_STATUS", 0, inifile);

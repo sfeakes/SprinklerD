@@ -22,11 +22,11 @@ bool check_delay24h()
   return false; 
 }
 
-void enable_system(bool state)
+void enable_calendar(bool state)
 {
-  if (_sdconfig_.system != state) {
+  if (_sdconfig_.calendar != state) {
     _sdconfig_.eventToUpdateHappened = true;
-    _sdconfig_.system = state;
+    _sdconfig_.calendar = state;
     logMessage(LOG_NOTICE, "Turning %s calendar\n",state==true?"on":"off");
   } else {
     logMessage(LOG_NOTICE, "Ignore request to turn %s calendar\n",state==true?"on":"off");
@@ -52,16 +52,24 @@ void enable_delay24h(bool state)
   }
 }
 
-void reset_delay24h_time()
+void reset_delay24h_time(unsigned long dtime)
 {
   if (_sdconfig_.delay24h != true) {
     _sdconfig_.eventToUpdateHappened = true;
   }
 
-  _sdconfig_.delay24h = true;
-  time(&_sdconfig_.delay24h_time);
-  _sdconfig_.delay24h_time =  _sdconfig_.delay24h_time + DELAY24H_SEC;
-  logMessage(LOG_NOTICE, "Reset rain Delay\n");
+  time_t now;
+  time(&now);
+  if (dtime > now) {
+    _sdconfig_.delay24h = true;
+    _sdconfig_.delay24h_time = dtime;
+    logMessage(LOG_NOTICE, "Reset rain Delay custom time\n");
+  } else {
+    _sdconfig_.delay24h = true;
+    time(&_sdconfig_.delay24h_time);
+    _sdconfig_.delay24h_time =  _sdconfig_.delay24h_time + DELAY24H_SEC;
+    logMessage(LOG_NOTICE, "Reset rain Delay\n");
+  }
 }
 
 void check_cron() {

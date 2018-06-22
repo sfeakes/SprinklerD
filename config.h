@@ -66,7 +66,7 @@ struct sprinklerdcfg {
   char mqtt_dz_sub_topic[50];
   char mqtt_dz_pub_topic[50];
   char mqtt_ID[MQTT_ID_LEN];
-  int dzidx_system;
+  int dzidx_calendar;
   int dzidx_24hdelay;
   int dzidx_allzones;
   int dzidx_status;
@@ -74,7 +74,7 @@ struct sprinklerdcfg {
   bool enableMQTTaq;
   int zones;
   //int pincfgs;
-  bool system;
+  bool calendar;
   bool delay24h;
   long delay24h_time;
   bool master_valve;

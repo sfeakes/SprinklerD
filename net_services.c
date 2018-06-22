@@ -225,7 +225,7 @@ int sprinklerdstatus(char *status, int length)
     struct tm * timeinfo = localtime (&_sdconfig_.delay24h_time);
     strftime (status,length,"24h delay: end time %a %I:%M%p",timeinfo);
     return 3;
-  } else if (_sdconfig_.system == true) {
+  } else if (_sdconfig_.calendar == true) {
     sprintf(status,"Calendar schedule");
     return 2;
   } else {
@@ -299,8 +299,8 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
     }
     if (is_mqtt(c)) {
      if (_sdconfig_.enableMQTTaq == true) {
-      sprintf(mqtt_topic, "%s/system", _sdconfig_.mqtt_topic);
-      sprintf(mqtt_msg, "%s", (_sdconfig_.system?MQTT_ON:MQTT_OFF) );
+      sprintf(mqtt_topic, "%s/calendar", _sdconfig_.mqtt_topic);
+      sprintf(mqtt_msg, "%s", (_sdconfig_.calendar?MQTT_ON:MQTT_OFF) );
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
       sprintf(mqtt_topic, "%s/24hdelay", _sdconfig_.mqtt_topic);
       sprintf(mqtt_msg, "%s", (_sdconfig_.delay24h?MQTT_ON:MQTT_OFF) );
@@ -313,8 +313,8 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
      }
      if (_sdconfig_.enableMQTTdz == true) {
-      if (_sdconfig_.dzidx_system > 0 && update_dz_cache(_sdconfig_.dzidx_system,(_sdconfig_.system==true ? DZ_ON : DZ_OFF) )) {
-        build_dz_mqtt_status_JSON(mqtt_msg, 50, _sdconfig_.dzidx_system, (_sdconfig_.system==true ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
+      if (_sdconfig_.dzidx_calendar > 0 && update_dz_cache(_sdconfig_.dzidx_calendar,(_sdconfig_.calendar==true ? DZ_ON : DZ_OFF) )) {
+        build_dz_mqtt_status_JSON(mqtt_msg, 50, _sdconfig_.dzidx_calendar, (_sdconfig_.calendar==true ? DZ_ON : DZ_OFF), TEMP_UNKNOWN);
         send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_msg);
       }
       if (_sdconfig_.dzidx_24hdelay > 0 && update_dz_cache(_sdconfig_.dzidx_24hdelay,(_sdconfig_.delay24h==true ? DZ_ON : DZ_OFF) )) {
@@ -392,15 +392,9 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
   } else if (strcmp(buf, "option") == 0) {
       //logMessage(LOG_DEBUG, "WEB REQUEST option %s\n",buf);
       mg_get_http_var(&http_msg->query_string, "option", buf, buflen);
-      if (strncasecmp(buf, "system", 6) == 0 ) {
+      if (strncasecmp(buf, "calendar", 6) == 0 ) {
         mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
-        enable_system(is_value_ON(buf));
-        /*
-        if ( is_value_ON(buf) )
-          _sdconfig_.system = true;
-         else
-          _sdconfig_.system = false;
-        */
+        enable_calendar(is_value_ON(buf));
         length = build_sprinkler_JSON(buffer, size);
       } else if (strncasecmp(buf, "24hdelay", 8) == 0 ) {
         mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
@@ -408,7 +402,8 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
         if (val == true || val == false) {
           enable_delay24h(val);
         } else if (strncasecmp(buf, "reset", 5) == 0) {
-          reset_delay24h_time();
+          mg_get_http_var(&http_msg->query_string, "time", buf, buflen);
+          reset_delay24h_time(atoi(buf));
         }
         length = build_sprinkler_JSON(buffer, size);
       } else if (strncasecmp(buf, "allz", 8) == 0 ) {
@@ -548,11 +543,11 @@ void action_domoticz_mqtt_message(struct mg_connection *nc, struct mg_mqtt_messa
   if (parseJSONmqttrequest(msg->payload.p, msg->payload.len, &idx, &nvalue, svalue)) {
     if (check_dz_cache(idx, nvalue))
       return;
-    if (idx == _sdconfig_.dzidx_system) {
+    if (idx == _sdconfig_.dzidx_calendar) {
       //_sdconfig_.system=(nvalue==DZ_ON?true:false);
-      enable_system(nvalue==DZ_ON?true:false);
+      enable_calendar(nvalue==DZ_ON?true:false);
       //_sdconfig_.eventToUpdateHappened = true;
-      logMessage(LOG_INFO, "Domoticz MQTT request to turn %s system",(nvalue==DZ_ON?"ON":"OFF"));
+      logMessage(LOG_INFO, "Domoticz MQTT request to turn %s calendar",(nvalue==DZ_ON?"ON":"OFF"));
     } else if (idx == _sdconfig_.dzidx_24hdelay) {
       enable_delay24h((nvalue==DZ_ON?true:false));
       logMessage(LOG_INFO, "Domoticz MQTT request to turn %s 24hDelay",(nvalue==DZ_ON?"ON":"OFF"));
@@ -627,10 +622,10 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "24hdelay", 8) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     enable_delay24h(status==zcON?true:false);
     logMessage(LOG_DEBUG, "MQTT: Enable 24 hour delay %s\n",status==zcON?"YES":"NO");
-  } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "system", 6) == 0 && strncmp(pt3, "set", 3) == 0 ) {
+  } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "calendar", 6) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     //_sdconfig_.system=status==zcON?true:false;
-    enable_system(status==zcON?true:false);
-    logMessage(LOG_DEBUG, "MQTT: Turning System %s\n",status==zcON?"ON":"OFF");
+    enable_calendar(status==zcON?true:false);
+    logMessage(LOG_DEBUG, "MQTT: Turning calendar %s\n",status==zcON?"ON":"OFF");
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "cycleallzones", 13) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     zc_zone(zcALL, 0, status, 0);
     logMessage(LOG_DEBUG, "MQTT: Cycle all zones %s\n",status==zcON?"ON":"OFF");

@@ -89,7 +89,7 @@ Then status messages will be posted to the sub topics listed below, with appropi
   sprinklerd/zone/1
   sprinklerd/zall
   sprinklerd/24hdelay
-  sprinklerd/system
+  sprinklerd/calendar
 ```
 
 To turn something on, or set information, simply add `set` to the end of the above topics, and post 1 or 0 in the message for a button. Topics sprinklerd will act on.
@@ -98,12 +98,13 @@ Turn stuff on/off (1 is on, 0 is off, but can use txt if you want)
 sprinklerd/zone/1/set 1
 sprinklerd/zone/zall/set 1   // Cycle all zones using default runtimes.
 sprinklerd/24hdelay/set 1
-sprinklerd/system/set 1
+sprinklerd/calendar/set 1
 ```
 
 
 ## All other hubs (excluding Apple HomeKit) Amazon,Samsung,Google etc
-Create a device for each piece of pool equiptment you have, eg Filter Pump, Spa Mode, Pool Light, Cleaner. Then add the following URL to program the switching of each device
+Obviously details will be diferent on each device, and I won't document them all. Basic idea is create a switch for item you want to control (zone(s), 24hdelay, calendar schedule etc). Then add the following URL to program the switching of each device.
+If you use a hub on you local lan like smartthings, then this is super simple. If you use cloud only device, like Alexa then you need to make a connection from your lan to amazon cloud since you should not put this web interface on the internet (since there is no security). There are 1001 ways to do this, but a MQTT bridge may be the easiest, search `MQTT to <my cloud-based hub> bridge` and pick one you like.
 ```
 http://sprinklerd.ip.address:port?type=option&option=24hdelay&state=off
 ```
@@ -114,17 +115,18 @@ http://sprinklerd.ip.address:port?type=option&option=24hdelay&state=off
 <host>?type=json                    // JSON full array style, need full parser to pass.
 
 *  // Cfg options
-<host>?type=option&option=24hdelay&state=off    // turn off 24h delay
 <host>?type=option&option=calendar&state=off    // turn off calendar
+<host>?type=option&option=24hdelay&state=off    // turn off 24h delay
 <host>?type=option&option=24hdelay&state=reset  // reset time on 24h delay
+<host>?type=option&option=24hdelay&state=reset&time=1529328782  // reset custom time on delay (utime in seconds)
 
 *  // Calendar
-<host>?type=calcfg&day=3&zone=&time=07:00      // Use default water zone times
-<host>?type=calcfg&day=2&zone=1&time=7         // Change water zone time
+<host>?type=calcfg&day=3&zone=&time=07:00      // Add day schedule and use default water zone times
+<host>?type=calcfg&day=2&zone=1&time=7         // Change water zone time (0 time is off)
 <host>?type=calcfg&day=3&zone=&time=           // Delete day schedule
   
 *  // Run options
-<host>?type=option&option=allz&state=on        // Run all zones default times
+<host>?type=option&option=allz&state=on        // Run all zones default times (ignore 24h delay & calendar settings)
 <host>?type=zone&zone=2&state=on&runtime=3     // Run zone 2 for 3 mins (ignore 24h delay & calendar settings)
 <host>?type=zrtcfg&zone=2&time=10              // change zone 2 default runtime to 10
 <host>?type=cron&zone=1&runtime=12'            // Run zone 1 for 12 mins (calendar & 24hdelay settings overide this request)

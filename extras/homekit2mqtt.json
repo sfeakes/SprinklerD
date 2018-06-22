@@ -25,7 +25,7 @@
       }
     ]
   },
-  "Sprinklerd System": {
+  "Sprinklerd Calendar": {
     "id": "SprinklerdCalendar",
     "name": "Calendar",
     "manufacturer": "Feakes Inc",
@@ -35,8 +35,8 @@
         "name": "Calendar",
         "service": "Switch",
         "topic": {
-          "setOn": "sprinklerd/system/set",
-          "statusOn": "sprinklerd/system"
+          "setOn": "sprinklerd/calendar/set",
+          "statusOn": "sprinklerd/calendar"
         },
         "payload": {
           "onTrue": 1,

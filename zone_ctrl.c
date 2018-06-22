@@ -88,8 +88,8 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
     return false;
   }
 
-  if (type == zcCRON && state == zcON && (_sdconfig_.system == false || _sdconfig_.delay24h == true) ) {
-    logMessage (LOG_WARNING, "Request to turn zone %d on. Ignored due to %s!\n",zone,_sdconfig_.delay24h?"Rain Delay active":"System off");
+  if (type == zcCRON && state == zcON && (_sdconfig_.calendar == false || _sdconfig_.delay24h == true) ) {
+    logMessage (LOG_WARNING, "Request to turn zone %d on. Ignored due to %s!\n",zone,_sdconfig_.delay24h?"Rain Delay active":"Calendar off");
     return false;
     // Check cal & 24hdelay, return if cal=false or 24hdelay=true
   } else if (type == zcALL) {
