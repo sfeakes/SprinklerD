@@ -4,7 +4,7 @@
 More details & pics to come
 
 linux daemon to control sprinklers. The control is done through GPIO pins, so simply connect a relay board to the GPOI. Provides web UI, MQTT client & HTTP API endpoints. So you can control your pool equiptment from any phone/tablet or computer, and should work with just about Home control systems, including Apple HomeKit, Samsung, Alexa, Google, etc home hubs.
-It is not designed to be a feature rich solution with elaborate UI, but rather a solution that cna be controlled from smart hubs.  It does have a web UI and basic calendar for scheduling zone runtimes, rain day delay etc. But advanced features like rain censors and web forecast delays should be done through your smat hub. 
+It is not designed to be a feature rich solution with elaborate UI, but rather a solution that can be controlled from smart hubs.  It does have a web UI and calendar for scheduling zone runtimes, rain day delay etc. But advanced features like rain censors and web forecast delays should be done through your smat hub. 
 It does support a master valve or pump. (ie turn on a master device with every zone).
 
 ### It does not, and will never provide any layer of security. NEVER directly expose the device running this software to the outside world, only indirectly through the use of Home Automation hub's or other securty measures, e.g. VPNs.
@@ -16,6 +16,19 @@ It does support a master valve or pump. (ie turn on a master device with every z
 
 ## In Apple Home app.
 <img src="extras/IMG_0239.png?raw=true" width="350"></img>
+
+
+## The Setup I use. 
+### Pi Zero W, 8 channel relay board & 2 channel relay board.
+All rain delays are set directly from my home automation hub, and not any locally connected sensors. ie :-
+* if rain sensor detects rain, cancel any running zones & delay 24h.
+* if rain sensor accumulates more than 5mm rain in 24hours, delay sprinklers for 48 hours.
+* Poll DarySkys API if rain forecast is higher than 50% enable 24h delay.
+<img src="extras/IMG_0243.jpg?raw=true" width="500"></img>
+
+Valves for each zone are connected to the relays, and relays connected to a 24vac power adapter, similar to wiring in the image below.
+
+<img src="extras/example valves.png?raw=true" width="500"></img>
 
 # TL;DR Install
 ## Quick instal if you are using Raspberry PI
