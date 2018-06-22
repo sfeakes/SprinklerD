@@ -12,7 +12,7 @@ It does support a master valve or pump. (ie turn on a master device with every z
 ## Builtin WEB Interface.
 <img src="extras/IMG_0236.png?raw=true" width="350"></img>
 <br>
-<img src="extras/CalendarUI.PNG?raw=true" width="500"></img>
+<img src="extras/CalendarUI.PNG?raw=true" width="600"></img>
 
 ## In Apple Home app.
 <img src="extras/IMG_0239.png?raw=true" width="350"></img>
@@ -24,11 +24,12 @@ All rain delays are set directly from my home automation hub, and not any locall
 * if rain sensor detects rain, cancel any running zones & delay 24h.
 * if rain sensor accumulates more than 5mm rain in 24hours, delay sprinklers for 48 hours.
 * Poll DarySkys API if rain forecast is higher than 50% enable 24h delay.
-<img src="extras/IMG_0243.jpg?raw=true" width="500"></img>
+
+<img src="extras/IMG_0243.jpg?raw=true" width="700"></img>
 
 Valves for each zone are connected to the relays, and relays connected to a 24vac power adapter, similar to wiring in the image below.
 
-<img src="extras/example valves.png?raw=true" width="500"></img>
+<img src="extras/example valves.png?raw=true" width="700"></img>
 
 # TL;DR Install
 ## Quick instal if you are using Raspberry PI
