@@ -161,9 +161,10 @@ Recomended option for HomeKit support is to make use of the MQTT interface and u
 You can of course use a myriad of other HomeKit bridges with the URL endpoints listed in the `All other hubs section`, or MQTT topics listed in the `MQTT` section. The majority of them (including HomeBridge the most popular) use Node and HAP-Node.JS, neither of which I am a fan of for the RaspberryPI. But HomeKit2MQTT seemed to have the least overhead of them all. So that's why the recomendation.
 
 ## Domoticz
-Does support domoticz, need to add documentation.
+Does naivety support domoticz, need to add documentation.
+* enable MQTT in domoticz
 * add virtual censor for every zone and buton
-* add the domoticz ID's in he config.
+* add the domoticz ID's in he sprinklerd config.
 
 
 # License
