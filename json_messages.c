@@ -23,6 +23,19 @@ int build_sprinkler_cal_JSON(char* buffer, int size)
 
   length = length-1;
 
+  for (zone=1; zone <= _sdconfig_.zones ; zone++)
+  {
+        length += sprintf(buffer+length,  ", \"z%d-runtime\" : %d, \"z%d-name\" : \"%s\" ", 
+                   //_sdconfig_.zonecfg[zone].zone, 
+                  //(digitalRead(_sdconfig_.zonecfg[zone].pin)==_sdconfig_.zonecfg[zone].on_state?"on":"off"),
+                   _sdconfig_.zonecfg[zone].zone,
+                   _sdconfig_.zonecfg[zone].default_runtime,
+                   _sdconfig_.zonecfg[zone].zone,
+                   _sdconfig_.zonecfg[zone].name);
+        //logMessage(LOG_DEBUG, "Zone %d, length %d limit %d\n",i,length,size);
+  }
+
+
   for (day=0; day <= 6; day++) {
     if (_sdconfig_.cron[day].hour >= 0 && _sdconfig_.cron[day].minute >= 0) {
       length += sprintf(buffer+length, ", \"d%d-starttime\" : \"%.2d:%.2d\" ",day,_sdconfig_.cron[day].hour,_sdconfig_.cron[day].minute);
@@ -61,17 +74,19 @@ int build_sprinkler_JSON(char* buffer, int size)
                                     _sdconfig_.zones,
                                     _sdconfig_.delay24h_time,
                                     status);
+      
       for (i=1; i <= _sdconfig_.zones ; i++)
       {
-        length += sprintf(buffer+length,  ", \"z%d\" : \"%s\", \"z%d-runtime\" : %d, \"z%d-name\" : \"%s\" ", 
+        length += sprintf(buffer+length,  ", \"z%d\" : \"%s\" ", 
                    _sdconfig_.zonecfg[i].zone, 
-                  (digitalRead(_sdconfig_.zonecfg[i].pin)==_sdconfig_.zonecfg[i].on_state?"on":"off"),
-                   _sdconfig_.zonecfg[i].zone,
-                   _sdconfig_.zonecfg[i].default_runtime,
-                   _sdconfig_.zonecfg[i].zone,
-                   _sdconfig_.zonecfg[i].name);
+                  (digitalRead(_sdconfig_.zonecfg[i].pin)==_sdconfig_.zonecfg[i].on_state?"on":"off"));
+                   //_sdconfig_.zonecfg[i].zone,
+                   //_sdconfig_.zonecfg[i].default_runtime,
+                   //_sdconfig_.zonecfg[i].zone,
+                   //_sdconfig_.zonecfg[i].name);
         //logMessage(LOG_DEBUG, "Zone %d, length %d limit %d\n",i,length,size);
       }
+      
       length += sprintf(buffer+length, "}");
 
   buffer[length] = '\0';
