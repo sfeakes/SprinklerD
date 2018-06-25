@@ -328,7 +328,8 @@
       };
       if (type == null ) {
         //http.open('GET', location.href + '?type=read', true);
-        http.open('GET', 'http://raw.githubusercontent.com/sfeakes/sprinklerd/master/demo/index.html.firstload.json', true);
+        http.open('GET', location.href + '.read.json', true);
+        //http.open('GET', 'http://raw.githubusercontent.com/sfeakes/sprinklerd/master/demo/index.html.firstload.json', true);
         http.send(null);
       } else if (type == 'firstload') {
         //http.open('GET', location.href + '?type=firstload', true);
