@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta http-equiv='Content-Type' content='text/html; charset=windows-1252'>
+
+  <title>Sprinkler</title>
+  <meta name='viewport' content='width=device-width'>
+  <meta name='apple-mobile-web-app-capable' content='yes'>
+  <meta name='apple-mobile-web-app-status-bar-style' content='black'>
+  <style>
+     :root {
+      --diameter: 30px;
+    }
+    html {
+    }
+    body {
+      font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif;
+      font-weight: 300;
+      background-color: #f1f1f1;
+      color: #000000;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    table,
+    th,
+    td {
+      border-collapse: collapse;
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid rgb(189, 189, 189);
+      width: 100%;
+    }
+    th {
+      width: 100vw;
+      padding: 15px;
+      text-align: center;
+      background-color: #f1f1f1;
+    }
+    tr {
+      background-color: white;
+      color: black;
+    }
+    .button {
+      background-color: white;
+      border-radius: 15px;
+      -webkit-border-radius: 15px;
+      -moz-border-radius: 15px;
+      height: 30px
+    }
+    .opaque {
+      top: 0px;
+      left: 0px;
+      background-color: black;
+      filter: alpha(opacity=20);
+      opacity: 0.2;
+    }
+    .show {
+      top: 0px;
+      left: 0px;
+    }
+    .message {
+      position: fixed;
+      top: 0px;
+      left: 0px;
+      height: 100%;
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+    }
+    .message-text {
+      background-color: black;
+      color: white;
+      height: auto;
+      padding: 15px;
+      font-size: 20px;
+      text-align: center;
+      position: relative;
+      border-radius: var(--diameter);
+    }
+    .option_button {
+      position: fixed;
+      top: 2px;
+      left: 2px;
+      z-index: 900;
+    }
+    .options {
+      top: 0px;
+      left: 0px;
+      z-index: 800;
+      display: none;
+    }
+    .input-text {
+        font-size: 16px;
+    }
+    .input-ios {
+        font-size: 16px;
+    }
+    
+    .status {
+      font-size: 14px;
+    }
+    .small-note {
+      font-size: 12px;
+    }
+    .btn-toggle {
+      position: absolute;
+      margin-left: -9999px;
+      visibility: hidden;
+    }
+    .btn-toggle+label {
+      display: block;
+      position: relative;
+      cursor: pointer;
+      outline: none;
+      user-select: none;
+    }
+    input.btn-toggle-round+label {
+      padding: 2px;
+      width: calc(2 * var(--diameter));
+      height: var(--diameter);
+      background-color: #dddddd;
+      border-radius: var(--diameter);
+    }
+    input.btn-toggle-round+label:before,
+    input.btn-toggle-round+label:after {
+      display: block;
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      bottom: 1px;
+      content: '';
+    }
+    input.btn-toggle-round+label:before {
+      right: 1px;
+      background-color: #f1f1f1;
+      border-radius: var(--diameter);
+      transition: background 0.4s;
+    }
+    input.btn-toggle-round+label:after {
+      width: var(--diameter);
+      background-color: #ffffff;
+      border-radius: 100%;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      transition: margin 0.4s;
+    }
+    input.btn-toggle-round:checked+label:before {
+      background-color: rgb(76, 217, 100);
+    }
+    input.btn-toggle-round:checked+label:after {
+      margin-left: var(--diameter);
+    }
+  </style>
+
+  <script type='text/javascript'>
+    var _poller;
+    var _showingConfig=false;
+    var _width;
+    function setSizeSpecifics() {
+      _width = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+      
+      /*
+        Future change element sizes here if needed
+      */
+    }
+    function addHeadIcon(rel) {
+      var image = 'data:image/png;base64,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';
+      var link = document.createElement('link');
+      link.rel = rel;
+      link.type= 'image/png';
+      link.href = image;
+      document.head.appendChild(link);
+    }
+    function headIcons() {
+      addHeadIcon('shortcut icon');
+      addHeadIcon('apple-touch-icon');
+      addHeadIcon('apple-touch-startup-image');
+    }
+    function hidemessage() {
+      if (_showingConfig == false) {
+        document.getElementById('main').className = 'show';
+      } else {
+        document.getElementById('options').className = 'show';
+      }
+      document.getElementById('message').style.display = 'none';
+    }
+    function showmessage() {
+      if (_showingConfig == false) {
+        document.getElementById('main').className = 'opaque';
+      } else {
+        document.getElementById('options').className = 'opaque';
+      }
+      document.getElementById('message').style.display = 'flex';
+    }
+    function switchOptionsPane() {
+      if (_showingConfig == true) {
+        document.getElementById('options').style.display = 'none';
+        document.getElementById('main').style.display = 'flex';
+        _showingConfig = false;
+      } else {
+        document.getElementById('options').style.display = 'flex';
+        document.getElementById('main').style.display = 'none';
+        cleanupCalendar();
+        _showingConfig = true;
+      }
+    }
+    function calendarhtmlrow(title, daynum, zones) {
+      html = '</tr><tr><td>'+title+'</td> \
+                  <td><input type="time" id="d'+daynum+'-starttime" class="input-ios" onchange="update(this);"></td>';
+      for (i=1; i<= zones; i++) {
+        html = html+'<td><input type="number" id="d'+daynum+'z'+i+'-runtime" class="input-ios" onchange="update(this);" pattern="[0-9]*" maxlength="2" inputmode="numeric" min="0" max="30" step="1"></td>';
+      }
+      html = html+'</tr>';
+      return html;
+    }
+    function setzonehtml(zones) {
+      html = '';
+     
+      for (i=1; i<= zones; i++) {
+        html = html+'<tr> \
+                      <td>Zone&nbsp;'+i+'</td> \
+                      <td><label id="z'+i+'-name" class="small-note"></label></td> \
+                      <td>Runtime</td> \
+                      <td><input type="number" id="z'+i+'-runtime" onchange="update(this);" class="input-ios" pattern="[0-9]*" maxlength="2" inputmode="numeric" min="1" max="30" step="1"></td> \
+                      <td> \
+                      <div class="switch"> \
+                      <input id="btn-toggle-z'+i+'" name="z'+i+'" class="btn-toggle btn-toggle-round" type="checkbox" onclick="update(this);"> \
+                      <label for="btn-toggle-z'+i+'"></label> \
+                      </div> \
+                      </td> \
+                      </tr>';
+      }
+      rnz = document.getElementById('main');
+      rnz.innerHTML = rnz.innerHTML.replace("<!-- AUTO HTML -->", html);
+      html = '<tr><th colspan="'+(zones+2)+'"> Configuration </th></tr> \
+              <tr> \
+              <td>&nbsp;</td> \
+              <td>Start Time</td>';
+      for (i=1; i<= zones; i++) {
+        html = html+'<td>Z'+i+'</td>';
+      }
+      html = html+calendarhtmlrow("Mon", 1, zones);
+      html = html+calendarhtmlrow("Tue", 2, zones);
+      html = html+calendarhtmlrow("Wed", 3, zones);
+      html = html+calendarhtmlrow("Thu", 4, zones);
+      html = html+calendarhtmlrow("Fri", 5, zones);
+      html = html+calendarhtmlrow("Sat", 6, zones);
+      html = html+calendarhtmlrow("Sun", 0, zones);
+      rnz = document.getElementById('options');
+      rnz.innerHTML = rnz.innerHTML.replace("<!-- AUTO HTML -->", html);
+    }
+    function cleanupCalendar() {
+      for (i = 0; i < 7; i++) {
+        st = document.getElementById('d'+i+'-starttime')
+        if (st != null) {
+          if (st.value != ''){show=true}else{show=false}
+          for (j=1; null != (rt = document.getElementById('d'+i+'z'+j+'-runtime'));j++) {
+            if (show) {
+              rt.classList.remove("opaque");
+              if (rt.value == '')
+                rt.value = document.getElementById('z'+j+'-runtime').value;
+            } else {
+              rt.classList.add("opaque");
+            }
+          }
+        }
+      }
+    }
+    // Need to come back and make the better.
+    // if under 375 make sure only 20 character with a space after 10.
+    function resize(string) {
+      if (_width <= 375)
+        return string;
+      else
+        return "("+string.replace(" ", "&nbsp;")+")";
+    }
+    function update(type) {
+      var http = new XMLHttpRequest();
+      if (http) {
+        http.onreadystatechange = function () {
+          if (http.readyState === 4) {
+            if (http.status == 200 && http.status < 300) {
+              if (type == 'firstload') {
+                setzonehtml(JSON.parse(http.responseText)['zones']);
+                hidemessage();
+              }
+              var data = JSON.parse(http.responseText);
+              for (var obj in data) {
+                if (obj == 'title') {
+                  document.title = data[obj];
+                  document.getElementById('title').innerHTML = data[obj];
+                } if (obj == 'status') {
+                  if (data[obj].length > 0)
+                    document.getElementById('status').innerHTML = "Active:&nbsp;"+data[obj];
+                  else
+                    document.getElementById('status').innerHTML = "Run now options";
+                } else if (obj == '24hdelay-offtime') {
+                  if (data[obj] > 0) {
+                    dt = new Date(data[obj] * 1000);
+                    var options = { weekday: "short", hour: "2-digit", minute: "2-digit"};
+                    document.getElementById('24hdelay-offtime').innerHTML = '(until '+dt.toLocaleTimeString("en-us", options)+')';
+                  } else {
+                    document.getElementById('24hdelay-offtime').innerHTML = '';
+                  }
+                } else if ( (field = document.getElementById(obj)) != null){
+                  if (obj.substr(-5,5) == '-name')
+                    field.innerHTML = resize(data[obj]);
+                  else
+                    field.value = data[obj];
+                } else {
+                  if ( (btn = document.getElementById('btn-toggle-' + obj)) != null){
+                    if (data[obj] == 'on')
+                      btn.checked = true;
+                    else
+                      btn.checked = false;
+                  } else if ( (btn = document.getElementById('btn-' + obj)) != null){
+                    btn.selectedIndex = data[obj];
+                  }
+                }
+              }
+            }
+            else if(http.status >= 400 || http.status == 0) {
+              document.getElementById('message-text').innerHTML = 'Error connecting to server';
+            }
+          }
+        }
+      };
+      if (type == null ) {
+        http.open('GET', location.href + '?type=read', true);
+        http.send(null);
+      } else if (type == 'firstload') {
+        http.open('GET', location.href + '?type=firstload', true);
+        http.send(null);
+      } else if (type != null) {
+        clearTimeout(_poller);
+         // compare xx-starttime or xxx-runtime or xxxx-runtime
+        if (type.id.substr(-4,4) == 'time') {
+          // d1z10-runtime is a calendar config, z11-runtime is a zone default runtime
+          if (type.id.substr(0,1) == 'd') {
+            http.open('GET', location.href + '?type=calcfg&day='+type.id.substr(1,1)+'&zone='+type.id.substr(3,type.id.lastIndexOf("-")-3)+'&time='+type.value);
+            http.send(null);
+            cleanupCalendar();
+          } else if (type.id.substr(0,1) == 'z') {
+            http.open('GET', location.href + '?type=zrtcfg&zone='+type.id.substr(1,type.id.lastIndexOf("-")-1)+'&time='+type.value);
+            http.send(null);
+            cleanupCalendar();
+          }
+        } else if (type.id.substr(0,11) == 'btn-toggle-'){
+          // If there is a 'xx-runtime' id then it's a zone to start, else it's a cfg button
+          if ( (rto = document.getElementById(type.name + '-runtime')) != null){
+            http.open('GET', location.href + '?type=zone&zone=' + type.name.substring(1) + '&state=' + ((type.checked == true) ? 'on' : 'off') + '&runtime=' + rto.value, true);
+          } else { 
+            http.open('GET', location.href + '?type=option&option=' + type.name + '&state=' + ((type.checked == true) ? 'on' : 'off'), true); 
+          }
+          
+          http.send(null);
+        }
+      }
+      _poller = setTimeout(update, 5000);
+    }
+  </script>
+</head>
+
+<body onload='setSizeSpecifics(); headIcons(); update("firstload");'>
+  <div id='message' class='message' onmousedown='hidemessage()'>
+    <div id='message-text' class='message-text'>
+      <b>Loading....</b>
+    </div>
+  </div>
+  <div id='option_button' class='option_button' onmousedown='switchOptionsPane()'>
+    <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAeUExURQAAADMzMjU1LjMzMjQ0NDMzMzAwMDMzMTIyMjMzMnuMncMAAAAJdFJOUwCAIOFAbRC/ouTmS5QAAACRSURBVDjL3ZTBDsMwCEMJJLT+/x8eblVtOzRhU9V288lCT4pMAJFNZj33lAK67z4DXakKVN1zTm5CQpPIjJRmAWz8tAEBlnGY8g3Ybfgb2NOvgcr+21pca0ajZ4AWiiGRRtM4VjR6Rurs0xe25/jUXkIMW2kq49P4rVIvm76dIn8p/OcWogwVkLTcIY3PbTnuAUNsEZOTrdGvAAAAAElFTkSuQmCC'>
+  </div>
+  <div id='main' class='opaque'>
+    <table>
+      <tbody>
+        <tr>
+          <th colspan='5'><label id='title'>Sprinkler</label></th>
+        </tr>
+        <tr>
+          <td colspan='4'>
+            Run on calendar schedule 
+          </td>
+          <td>
+            <div class='switch'>
+              <input id='btn-toggle-calendar' name='calendar' class='btn-toggle btn-toggle-round' type='checkbox' onclick='update(this);'>
+              <label for='btn-toggle-calendar'></label>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td colspan='4'>
+            24h Rain Delay&nbsp;<label id='24hdelay-offtime' class='small-note'></label>
+          </td>
+          <td>
+            <div class='switch'>
+              <input id='btn-toggle-24hdelay' name='24hdelay' class='btn-toggle btn-toggle-round' type='checkbox' onclick='update(this);'>
+              <label for='btn-toggle-24hdelay'></label>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <th colspan='5' class='status'>
+              <label id='status'>Run now option</label>
+<!--            <font size='-1'>Run now option</font> -->
+          </th>
+        </tr>
+        <tr>
+          <td colspan='4'>Cycle all Zones</td>
+          <td>
+            <div class='switch'>
+              <input id='btn-toggle-allz' name='allz' class='btn-toggle btn-toggle-round' type='checkbox' onclick='update(this);'>
+              <label for='btn-toggle-allz'></label>
+            </div>
+          </td>
+        </tr>
+        <!-- AUTO HTML -->
+      </tbody>
+    </table>
+  </div>
+  <div id='options' class='options'>
+    <table>
+      <tbody>
+      <!-- AUTO HTML -->
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
