@@ -327,10 +327,12 @@
         }
       };
       if (type == null ) {
-        http.open('GET', location.href + '?type=read', true);
+        //http.open('GET', location.href + '?type=read', true);
+        http.open('GET', location.href + '.read.json', true);
         http.send(null);
       } else if (type == 'firstload') {
-        http.open('GET', location.href + '?type=firstload', true);
+        //http.open('GET', location.href + '?type=firstload', true);
+        http.open('GET', location.href + '.firstload.json', true);
         http.send(null);
       } else if (type != null) {
         clearTimeout(_poller);
