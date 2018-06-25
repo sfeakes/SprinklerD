@@ -357,6 +357,7 @@
             http.open('GET', location.href + '?type=option&option=' + type.name + '&state=' + ((type.checked == true) ? 'on' : 'off'), true); 
           }
           // DEMO CLEANUP CRAP
+          /*
           if (rto != null && type.checked == true) {
             i = 1;
             while ( (zb = document.getElementById('btn-toggle-z'+i)) != null ) {
@@ -365,7 +366,7 @@
                 i++;
               }
             }
-          }
+          }*/
           
           http.send(null);
         }
