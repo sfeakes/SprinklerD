@@ -1,9 +1,0 @@
----
- name: The Name of the Demo
- description: Some description, please keep it in one line
- authors:
-   - John Doe
- resources:
-   - ./index.html
- normalize_css: no
- ...
