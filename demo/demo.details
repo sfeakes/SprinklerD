@@ -4,6 +4,6 @@
  authors:
    - John Doe
  resources:
-   - https://raw.githubusercontent.com/sfeakes/sprinklerd/master/demo/index.htmls
+   - ./index.html
  normalize_css: no
  ...
