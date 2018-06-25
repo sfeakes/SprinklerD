@@ -1,0 +1,9 @@
+---
+ name: The Name of the Demo
+ description: Some description, please keep it in one line
+ authors:
+   - John Doe
+ resources:
+   - https://raw.githubusercontent.com/sfeakes/sprinklerd/master/demo/index.htmls
+ normalize_css: no
+ ...
