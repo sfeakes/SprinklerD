@@ -124,7 +124,7 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
   //}
 
   if (state == zcON) {
-    for (i=1; i < _sdconfig_.zones ; i++)
+    for (i=1; i <= _sdconfig_.zones ; i++)
     {
       if ( _sdconfig_.zonecfg[i].on_state == digitalRead (_sdconfig_.zonecfg[i].pin)) {
         if (zone == i) {

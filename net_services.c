@@ -112,6 +112,7 @@ bool update_dz_cache(int dzidx, int value) {
 
 bool check_dz_cache(int idx, int value) {
   int i;
+
   for(i=0; i < _sdconfig_.zones + NON_ZONE_DZIDS; i++)
   {
     if (_sdconfig_.dz_cache[i].idx == idx) {
@@ -394,6 +395,7 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
       mg_get_http_var(&http_msg->query_string, "option", buf, buflen);
       if (strncasecmp(buf, "calendar", 6) == 0 ) {
         mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
+        logMessage(LOG_NOTICE, "WEB request to turn Calendar %s\n",buf);
         enable_calendar(is_value_ON(buf));
         length = build_sprinkler_JSON(buffer, size);
       } else if (strncasecmp(buf, "24hdelay", 8) == 0 ) {
@@ -541,10 +543,12 @@ void action_domoticz_mqtt_message(struct mg_connection *nc, struct mg_mqtt_messa
   char svalue[DZ_SVALUE_LEN];
 
   if (parseJSONmqttrequest(msg->payload.p, msg->payload.len, &idx, &nvalue, svalue)) {
-    if (check_dz_cache(idx, nvalue))
+    if ( idx <= 0 || check_dz_cache(idx, nvalue))
       return;
     if (idx == _sdconfig_.dzidx_calendar) {
       //_sdconfig_.system=(nvalue==DZ_ON?true:false);
+      //logMessage(LOG_NOTICE, "Domoticz: topic %.*s %.*s\n",msg->topic.len, msg->topic.p, msg->payload.len, msg->payload.p);
+      logMessage(LOG_NOTICE, "Domoticz request to turn Calendar %s\n",nvalue==DZ_ON?"On":"Off");
       enable_calendar(nvalue==DZ_ON?true:false);
       //_sdconfig_.eventToUpdateHappened = true;
       logMessage(LOG_INFO, "Domoticz MQTT request to turn %s calendar",(nvalue==DZ_ON?"ON":"OFF"));
@@ -624,6 +628,7 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
     logMessage(LOG_DEBUG, "MQTT: Enable 24 hour delay %s\n",status==zcON?"YES":"NO");
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "calendar", 6) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     //_sdconfig_.system=status==zcON?true:false;
+    logMessage(LOG_NOTICE, "MQTT request to turn Calendar %s\n",status==zcON?"On":"Off");
     enable_calendar(status==zcON?true:false);
     logMessage(LOG_DEBUG, "MQTT: Turning calendar %s\n",status==zcON?"ON":"OFF");
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "cycleallzones", 13) == 0 && strncmp(pt3, "set", 3) == 0 ) {
