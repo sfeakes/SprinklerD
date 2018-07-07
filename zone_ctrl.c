@@ -15,6 +15,10 @@ void zc_master(zcState state);
 
 int calc_timeleft() {
   if (_sdconfig_.currentZone.zone != -1) {
+    // See if the duration time changed since we started.
+    if ( _sdconfig_.currentZone.duration != _sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime)
+      _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime;
+    
     time_t now;
     time(&now);
     _sdconfig_.currentZone.timeleft = (_sdconfig_.currentZone.duration * SEC2MIN) - difftime(now, _sdconfig_.currentZone.started_time);

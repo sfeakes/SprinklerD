@@ -143,6 +143,41 @@ int build_advanced_sprinkler_JSON(char* buffer, int size)
   return strlen(buffer);
 }
 
+int build_homebridge_sprinkler_JSON(char* buffer, int size)
+{
+  int i;
+  memset(&buffer[0], 0, size);
+  int length = 0;
+
+  length += sprintf(buffer+length,  "{ \"title\" : \"%s\", ", _sdconfig_.name);
+
+  length += sprintf(buffer+length,  " \"devices\": [");
+  for (i=0; i <= _sdconfig_.zones ; i++)
+  {
+    length += sprintf(buffer+length,  "{\"type\" : \"zone\", \"zone\": %d, \"name\": \"%s\", \"state\": \"%s\", \"duration\": %d, \"id\" : \"zone%d\" },",
+                                      _sdconfig_.zonecfg[i].zone,
+                                      _sdconfig_.zonecfg[i].name,
+                                      (digitalRead(_sdconfig_.zonecfg[i].pin)==_sdconfig_.zonecfg[i].on_state?"on":"off"),
+                                      _sdconfig_.zonecfg[i].default_runtime * 60,
+                                      _sdconfig_.zonecfg[i].zone);
+  }
+  
+  length += sprintf(buffer+length,  "{\"type\" : \"zone\", \"zone\": %d, \"name\": \"Cycle all zones\", \"state\": \"%s\", \"duration\": 0, \"id\" : \"cycleallzones\" },",
+                                    _sdconfig_.zones+1,
+                                    _sdconfig_.currentZone.type==zcALL?"on":"off");
+  length += sprintf(buffer+length,  "{\"type\" : \"switch\", \"zone\": -1, \"name\": \"24h Rain Delay\", \"state\": \"%s\", \"duration\": 0, \"id\" : \"24hdelay\" },",
+                                    _sdconfig_.delay24h?"on":"off");
+  length += sprintf(buffer+length,  "{\"type\" : \"switch\", \"zone\": -1, \"name\": \"Run on calendar schedule\", \"state\": \"%s\", \"duration\": 0, \"id\" : \"calendar\" }",
+                                    _sdconfig_.calendar?"on":"off");
+
+
+  length += sprintf(buffer+length, "]}");
+
+  buffer[length] = '\0';
+  return strlen(buffer);
+
+}
+
 int build_dz_mqtt_status_JSON(char* buffer, int size, int idx, int nvalue, float tvalue)
 {
   memset(&buffer[0], 0, size);

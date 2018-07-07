@@ -340,7 +340,7 @@ void Daemon_Stop (int signum)
     }
   }
 #ifndef USE_WIRINGPI
-  gpioSetup();
+  gpioShutdown();
 #endif
   /*
 #ifdef PTHREAD  
@@ -366,7 +366,7 @@ void intHandler(int signum) {
   }
   
 #ifndef USE_WIRINGPI
-  gpioSetup();
+  gpioShutdown();
 #endif
 
   close(server_sock);

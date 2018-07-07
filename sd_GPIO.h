@@ -32,7 +32,10 @@
 #define	INT_EDGE_BOTH		3
 
 #ifndef GPIO_SYSFS_MODE
-  #define GPIO_BASE 0x20200000
+  #define GPIO_BASE_P2     0x3F000000
+  #define GPIO_BASE_P1     0x20000000
+  #define GPIO_OFFSET      0x200000
+  //#define GPIO_BASE 0x20200000
   #define GPIO_LEN  0xB4
 
   #define GPSET0     7
@@ -48,6 +51,20 @@
   #define GPPUD     37
   #define GPPUDCLK0 38
   #define GPPUDCLK1 39
+
+  #define	PI_MODEL_UNKNOWN -1
+  #define	PI_MODEL_A		    0
+  #define	PI_MODEL_B		    1
+  #define	PI_MODEL_AP		    2
+  #define	PI_MODEL_BP		    3
+  #define	PI_MODEL_2	      4
+  #define	PI_ALPHA		      5
+  #define	PI_MODEL_CM		    6
+  #define	PI_MODEL_07		    7
+  #define	PI_MODEL_3		    8
+  #define	PI_MODEL_ZERO		  9
+  #define	PI_MODEL_CM3		  10
+  #define	PI_MODEL_ZERO_W		12
 #endif
 
 

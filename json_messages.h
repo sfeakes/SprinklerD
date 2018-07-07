@@ -16,7 +16,8 @@ int build_dz_mqtt_status_JSON(char* buffer, int size, int idx, int nvalue, float
 int build_dz_status_message_JSON(char* buffer, int size, int idx, int nvalue, char *svalue);
 int build_sprinkler_JSON(char* buffer, int size);
 int build_sprinkler_cal_JSON(char* buffer, int size);
-int build_advanced_sprinkler_JSON(char* buffer, int size);  
+int build_advanced_sprinkler_JSON(char* buffer, int size); 
+int build_homebridge_sprinkler_JSON(char* buffer, int size); 
 
 
 

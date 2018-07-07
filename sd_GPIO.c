@@ -9,27 +9,102 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
+#include <string.h>
+#include <ctype.h>
 
 #include "utils.h"
 #include "sd_GPIO.h"
 
+static bool _ever = false;
+void gpioDelay (unsigned int howLong);
+
 #ifndef GPIO_SYSFS_MODE
 
 static volatile uint32_t  * _gpioReg = MAP_FAILED;
-static bool _ever = false;
 
-void gpioDelay (unsigned int howLong) // Microseconds (1000000 = 1 second)
+int piBoardId ()
 {
-  struct timespec sleeper, dummy ;
+  FILE *cpuFd ;
+  char line [120] ;
+  char *c ;
+  unsigned int revision ;
+  //int bRev, bType, bProc, bMfg, bMem, bWarranty;
+	int bType;
 
-  sleeper.tv_sec  = (time_t)(howLong / 1000) ;
-  sleeper.tv_nsec = (long)(howLong % 1000) * 1000000 ;
+  if ((cpuFd = fopen ("/proc/cpuinfo", "r")) == NULL)
+    logMessage (LOG_ERR, "piBoardId: Unable to open /proc/cpuinfo") ;
 
-  nanosleep (&sleeper, &dummy) ;
+  while (fgets (line, 120, cpuFd) != NULL)
+    if (strncmp (line, "Revision", 8) == 0)
+      break ;
+
+  fclose (cpuFd) ;
+
+  if (strncmp (line, "Revision", 8) != 0)
+    logMessage (LOG_ERR, "piBoardId: No \"Revision\" line") ;
+
+// Chomp trailing CR/NL
+  for (c = &line [strlen (line) - 1] ; (*c == '\n') || (*c == '\r') ; --c)
+    *c = 0 ;
+  
+  logMessage (LOG_DEBUG, "piBoardId: Revision string: %s\n", line) ;
+
+// Scan to the first character of the revision number
+
+  for (c = line ; *c ; ++c)
+    if (*c == ':')
+      break ;
+
+  if (*c != ':')
+    logMessage (LOG_ERR, "piBoardId: Unknown \"Revision\" line (no colon)") ;
+
+// Chomp spaces
+
+  ++c ;
+  while (isspace (*c))
+    ++c ;
+
+  if (!isxdigit (*c))
+    logMessage (LOG_ERR, "piBoardId: Unknown \"Revision\" line (no hex digit at start of revision)") ;
+
+  revision = (unsigned int)strtol (c, NULL, 16) ; // Hex number with no leading 0x
+
+// Check for new way:
+
+  if ((revision &  (1 << 23)) != 0)	// New way
+  {/*
+    bRev      = (revision & (0x0F <<  0)) >>  0 ;*/
+    bType     = (revision & (0xFF <<  4)) >>  4 ;
+		return bType;
+		/*
+    bProc     = (revision & (0x0F << 12)) >> 12 ;	// Not used for now.
+    bMfg      = (revision & (0x0F << 16)) >> 16 ;
+    bMem      = (revision & (0x07 << 20)) >> 20 ;
+    bWarranty = (revision & (0x03 << 24)) != 0 ;
+    */
+  }
+
+  return PI_MODEL_UNKNOWN;
 }
 
 bool gpioSetup() {
 	int fd;
+	unsigned int piGPIObase = 0;
+
+	switch ( piBoardId() )
+  {
+    case PI_MODEL_A:	case PI_MODEL_B:
+    case PI_MODEL_AP:	case PI_MODEL_BP:
+    case PI_ALPHA:	case PI_MODEL_CM:
+    case PI_MODEL_ZERO:	case PI_MODEL_ZERO_W:
+		case PI_MODEL_UNKNOWN:
+      piGPIObase = (GPIO_BASE_P1 + GPIO_OFFSET);
+      break ;
+
+    default:
+      piGPIObase = (GPIO_BASE_P2 + GPIO_OFFSET);
+      break ;
+  }
 
    fd = open("/dev/mem", O_RDWR | O_SYNC);
 
@@ -46,7 +121,7 @@ bool gpioSetup() {
       PROT_READ|PROT_WRITE|PROT_EXEC,
       MAP_SHARED|MAP_LOCKED,
       fd,
-      GPIO_BASE);
+      piGPIObase);
 
    close(fd);
 
@@ -165,7 +240,35 @@ int pinMode (unsigned pin, unsigned mode)
 
 	return true;
 }
+
+int getPinMode(unsigned gpio) {
+	char path[SYSFS_PATH_MAX];
+	char value_str[SYSFS_READ_MAX];
+	int fd;
+
+  snprintf(path, SYSFS_PATH_MAX, "/sys/class/gpio/gpio%d/direction", gpio);
+	fd = open(path, O_RDONLY);
+	if (-1 == fd) {
+		//fprintf(stderr, "Failed to open gpio direction for writing!\n");
+    logMessage (LOG_ERR, "Failed to open gpio '%s' for reading!\n",path);
+		return false;
+	}
+
+	if (-1 == read(fd, value_str, SYSFS_READ_MAX)) {
+		//fprintf(stderr, "Failed to read value!\n");
+    logMessage (LOG_ERR, "Failed to read value on '%s'!\n",path);
+		displayLastSystemError("");
+		return(-1);
+	}
  
+	close(fd);
+
+	if (strcasecmp(value_str, "out")==0)
+	  return OUTPUT;
+	
+	return INPUT;
+}
+
 int digitalRead (unsigned pin)
 {
 	char path[SYSFS_PATH_MAX];
@@ -219,6 +322,16 @@ int digitalWrite (unsigned pin, unsigned value)
 	return true;
 }
 #endif
+
+void gpioDelay (unsigned int howLong) // Microseconds (1000000 = 1 second)
+{
+  struct timespec sleeper, dummy ;
+
+  sleeper.tv_sec  = (time_t)(howLong / 1000) ;
+  sleeper.tv_nsec = (long)(howLong % 1000) * 1000000 ;
+
+  nanosleep (&sleeper, &dummy) ;
+}
 
 bool isExported(unsigned pin)
 {
@@ -459,6 +572,14 @@ bool registerGPIOinterrupt(int pin, int mode, void (*function)(void *args), void
 
 //#define TEST_HARNESS
 
+#define GPIO_OFF   0x00005000  /* Offset from IO_START to the GPIO reg's. */
+
+/* IO_START and IO_BASE are defined in hardware.h */
+
+#define GPIO_START (IO_START_2 + GPIO_OFF) /* Physical addr of the GPIO reg. */
+#define GPIO_BASE_NEW  (IO_BASE_2  + GPIO_OFF) /* Virtual addr of the GPIO reg. */
+
+
 #ifdef TEST_HARNESS
 
 #include <stdarg.h>
@@ -497,7 +618,7 @@ void displayLastSystemError (const char *on_what)
 
 }
 
-#define PIN  4
+#define PIN  17
 #define POUT  27
 int main(int argc, char *argv[]) {
   int repeat = 3;
@@ -510,9 +631,9 @@ int main(int argc, char *argv[]) {
 	pinUnexport(PIN);
 	pinExport(POUT);
 	pinExport(PIN);
-
-  sleep(1);
 */
+  sleep(1);
+
 	//edgeSetup(POUT, INT_EDGE_BOTH);
 
   if (-1 == pinMode(POUT, OUTPUT) || -1 == pinMode(PIN, INPUT))
@@ -523,23 +644,23 @@ int main(int argc, char *argv[]) {
 
   if (pinExport(POUT) != true) 
 		printf("Error exporting pin\n");
-	
+	/*
   if (registerGPIOinterrupt(POUT, INT_EDGE_RISING, (void *)&myCallBack, (void *)&repeat ) != true)
 	  printf("Error registering interupt\n");
 
 	if (registerGPIOinterrupt(PIN, INT_EDGE_RISING, (void *)&myCallBack, (void *)&repeat ) != true)
 	  printf("Error registering interupt\n");
-	
+	*/
 
   do {
 
-		printf("I'm writing to GPIO %d (input)\n", digitalRead(PIN), PIN);
+		printf("Writing %d to GPIO %d\n", repeat % 2, POUT);
     if (-1 == digitalWrite(POUT, repeat % 2))
       return (3);
 
 
-    printf("I'm reading %d in GPIO %d (input)\n", digitalRead(PIN), PIN);
-    printf("I'm reading %d in GPIO %d (output)\n", digitalRead(POUT), POUT);
+    printf("Read %d from GPIO %d (input)\n", digitalRead(PIN), PIN);
+    printf("Read %d from GPIO %d (output)\n", digitalRead(POUT), POUT);
 
     usleep(500 * 1000);
   } while (repeat--);

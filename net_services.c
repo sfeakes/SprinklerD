@@ -199,8 +199,19 @@ void publish_zone_mqtt(struct mg_connection *nc, struct GPIOcfg *gpiopin) {
 
   if (_sdconfig_.enableMQTTaq == true) {
     // sprintf(mqtt_topic, "%s/%s", _sdconfig_.mqtt_topic, gpiopin->name);
-    sprintf(mqtt_topic, "%s/zone/%d", _sdconfig_.mqtt_topic, gpiopin->zone);
+    sprintf(mqtt_topic, "%s/zone%d", _sdconfig_.mqtt_topic, gpiopin->zone);
     sprintf(mqtt_msg, "%s", (digitalRead(gpiopin->pin) == gpiopin->on_state ? MQTT_ON : MQTT_OFF));
+    send_mqtt_msg(nc, mqtt_topic, mqtt_msg);
+    sprintf(mqtt_topic, "%s/zone%d/duration", _sdconfig_.mqtt_topic, gpiopin->zone);
+    sprintf(mqtt_msg, "%d", gpiopin->default_runtime * 60);
+    send_mqtt_msg(nc, mqtt_topic, mqtt_msg);
+                                   
+    sprintf(mqtt_topic, "%s/zone%d/remainingduration", _sdconfig_.mqtt_topic, gpiopin->zone);
+    if (_sdconfig_.currentZone.zone == gpiopin->zone) {  
+      sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft * 60);
+    } else {
+      sprintf(mqtt_msg, "%d", 0);
+    }
     send_mqtt_msg(nc, mqtt_topic, mqtt_msg);
   }
   if (gpiopin->dz_idx > 0 && _sdconfig_.enableMQTTdz == true) {
@@ -269,12 +280,32 @@ void broadcast_sprinklerdactivestate(struct mg_connection *nc)
       sprintf(mqtt_topic, "%s/active", _sdconfig_.mqtt_topic);
       sprintf(mqtt_msg, "Zone %d", _sdconfig_.currentZone.zone );
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
-      sprintf(mqtt_topic, "%s/remainingduration", _sdconfig_.mqtt_topic);
-      sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft );
-      send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      //sprintf(mqtt_topic, "%s/remainingduration", _sdconfig_.mqtt_topic);
+      //sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft );
+      //send_mqtt_msg(c, mqtt_topic, mqtt_msg);
       sprintf(mqtt_topic, "%s/status", _sdconfig_.mqtt_topic);
       sprinklerdstatus(mqtt_msg, 50);
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      // Send info specific to zone
+      sprintf(mqtt_topic, "%s/zone%d/remainingduration", _sdconfig_.mqtt_topic, _sdconfig_.currentZone.zone);
+      sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft );
+      send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      if (_sdconfig_.currentZone.type == zcALL) {
+        int i, total=_sdconfig_.currentZone.timeleft;
+        for (i=_sdconfig_.currentZone.zone+1; i <= _sdconfig_.zones; i++) {
+          total += (_sdconfig_.zonecfg[i].default_runtime * 60); 
+        }
+        sprintf(mqtt_topic, "%s/cycleallzones/remainingduration", _sdconfig_.mqtt_topic);
+        sprintf(mqtt_msg, "%d", total );
+        send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+        sprintf(mqtt_topic, "%s/zone0/remainingduration", _sdconfig_.mqtt_topic);
+        send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      } else if (_sdconfig_.currentZone.type != zcNONE) {
+        sprintf(mqtt_topic, "%s/zone0/remainingduration", _sdconfig_.mqtt_topic);
+        sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft );
+        send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      }
+
     }
   }
 }
@@ -383,7 +414,9 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
   logMessage (LOG_DEBUG, "Request type %s\n",buf);
 
   if (strcmp(buf, "json") == 0) {
-    length = build_advanced_sprinkler_JSON(buffer, size);   
+    length = build_advanced_sprinkler_JSON(buffer, size);
+  } else if (strcmp(buf, "homebridge") == 0) {
+    length = build_homebridge_sprinkler_JSON(buffer, size);
   } else if (strcmp(buf, "firstload") == 0) {
       logMessage(LOG_DEBUG, "WEB REQUEST Firstload %s\n",buf);
       length = build_sprinkler_cal_JSON(buffer, size);
@@ -396,6 +429,7 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
       if (strncasecmp(buf, "calendar", 6) == 0 ) {
         mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
         logMessage(LOG_NOTICE, "WEB request to turn Calendar %s\n",buf);
+        logMessage(LOG_NOTICE, "Request | %.*s\n",http_msg->query_string.len,http_msg->query_string.p);
         enable_calendar(is_value_ON(buf));
         length = build_sprinkler_JSON(buffer, size);
       } else if (strncasecmp(buf, "24hdelay", 8) == 0 ) {
@@ -456,6 +490,7 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
         _sdconfig_.zonecfg[zone].default_runtime = runtime;
         logMessage(LOG_DEBUG, "changed default runtime on zone %d, to %d\n",zone, runtime);
         length = build_sprinkler_JSON(buffer, size);
+        *changedOption = true;
       } else
         length += sprintf(buffer,  "{ \"error\": \"bad request zone %d runtime %d\"}",zone,runtime);
   } else if (strcmp(buf, "calcfg") == 0) {
@@ -547,7 +582,7 @@ void action_domoticz_mqtt_message(struct mg_connection *nc, struct mg_mqtt_messa
       return;
     if (idx == _sdconfig_.dzidx_calendar) {
       //_sdconfig_.system=(nvalue==DZ_ON?true:false);
-      //logMessage(LOG_NOTICE, "Domoticz: topic %.*s %.*s\n",msg->topic.len, msg->topic.p, msg->payload.len, msg->payload.p);
+      logMessage(LOG_NOTICE, "Domoticz: topic %.*s %.*s\n",msg->topic.len, msg->topic.p, msg->payload.len, msg->payload.p);
       logMessage(LOG_NOTICE, "Domoticz request to turn Calendar %s\n",nvalue==DZ_ON?"On":"Off");
       enable_calendar(nvalue==DZ_ON?true:false);
       //_sdconfig_.eventToUpdateHappened = true;
@@ -601,7 +636,8 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
   /* Need to action the following
   1 = on
 
-  //sprinkler/zone/1/set on
+  //sprinkler/zone1/set on
+  //sprinkler/zone1/duration/set on
   //sprinkler/zone/all/set on
   //sprinkler/24hdelay/set on
   //sprinkler/system/set on
@@ -615,6 +651,8 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
 
   logMessage(LOG_DEBUG, "MQTT: topic %.*s %.*s\n",msg->topic.len, msg->topic.p, msg->payload.len, msg->payload.p);
 
+  //logMessage(LOG_DEBUG, "MQTT: pt2 %.*s == %s %c\n", 4, pt2, strncmp(pt2, "zone", 4) == 0?"YES":"NO", pt2[4]);
+/*
   if (pt2 != NULL && pt3 != NULL && pt4 != NULL && strncmp(pt2, "zone", 4) == 0 && strncmp(pt4, "set", 3) == 0 ) {
     int zone = atoi(pt3);
     if (zone > 0 && zone <= _sdconfig_.zones) {
@@ -622,6 +660,15 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
       logMessage(LOG_DEBUG, "MQTT: Turn zone %d %s\n",zone, status==zcON?"ON":"OFF");
     } else {
       logMessage(LOG_WARNING, "MQTT: unknown zone %d\n",zone);
+    }
+  } else*/
+  if (pt2 != NULL && pt3 != NULL && pt4 != NULL && strncmp(pt2, "zone", 4) == 0 && strncmp(pt3, "duration", 8) == 0 && strncmp(pt4, "set", 3) == 0 ) {
+    int zone = atoi(&pt2[4]);
+    if (zone > 0 && zone <= _sdconfig_.zones) {
+      int v = str2int(msg->payload.p, msg->payload.len);
+      _sdconfig_.zonecfg[zone].default_runtime = v / 60;
+      _sdconfig_.eventToUpdateHappened = true;
+      logMessage(LOG_DEBUG, "MQTT: Default runtime zone %d is %d\n",zone,_sdconfig_.zonecfg[zone].default_runtime);
     }
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "24hdelay", 8) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     enable_delay24h(status==zcON?true:false);
@@ -634,6 +681,21 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "cycleallzones", 13) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     zc_zone(zcALL, 0, status, 0);
     logMessage(LOG_DEBUG, "MQTT: Cycle all zones %s\n",status==zcON?"ON":"OFF");
+  } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "zone", 4) == 0 && strncmp(pt3, "set", 3) == 0 ) {
+    int zone = atoi(&pt2[4]);
+    if (zone > 0 && zone <= _sdconfig_.zones) {
+      zc_zone(zcSINGLE, zone, status, 0);
+      logMessage(LOG_DEBUG, "MQTT: Turn zone %d %s\n",zone, status==zcON?"ON":"OFF");
+    } else if (zone == 0 && status == zcOFF && _sdconfig_.currentZone.type != zcNONE) { 
+      // request to turn off master will turn off any running zone
+      zc_zone(zcSINGLE, _sdconfig_.currentZone.zone , zcOFF, 0);
+      logMessage(LOG_DEBUG, "MQTT: Request master valve off, turned zone %d off\n",_sdconfig_.currentZone.zone);
+    } else if (zone == 0 && status == zcON) {
+      // Can't turn on master valve, just re-send current stats.
+      _sdconfig_.eventToUpdateHappened = true; 
+    } else {
+      logMessage(LOG_WARNING, "MQTT: unknown zone %d\n",zone);
+    }
   } else {
     logMessage(LOG_DEBUG, "MQTT: Unknown topic %.*s %.*s\n",msg->topic.len, msg->topic.p, msg->payload.len, msg->payload.p);
     return;
