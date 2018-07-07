@@ -47,6 +47,7 @@ void enable_delay24h(bool state)
       _sdconfig_.delay24h_time = 0;
       logMessage(LOG_NOTICE, "Turning off rain Delay\n");
     }
+    write_cache();
   } else {
     logMessage(LOG_NOTICE, "Ignore request to turn %s rain Delay\n",state==true?"on":"off");
   }
@@ -70,6 +71,7 @@ void reset_delay24h_time(unsigned long dtime)
     _sdconfig_.delay24h_time =  _sdconfig_.delay24h_time + DELAY24H_SEC;
     logMessage(LOG_NOTICE, "Reset rain Delay\n");
   }
+  write_cache();
 }
 
 void check_cron() {
