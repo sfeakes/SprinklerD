@@ -61,6 +61,7 @@ void reset_delay24h_time(unsigned long dtime)
 
   time_t now;
   time(&now);
+  logMessage(LOG_NOTICE, "Reset rain Delay request %d  now %d\n", dtime, now);
   if (dtime > now) {
     _sdconfig_.delay24h = true;
     _sdconfig_.delay24h_time = dtime;

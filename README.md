@@ -17,6 +17,12 @@ It does support a master valve or pump. (ie turn on a master device with every z
 ## In Apple Home app.
 <img src="extras/IMG_0239.png?raw=true" width="350"></img>
 
+<img src="extras/IMG_0248.PNG?raw=true" width="350"></img>
+<img src="extras/IMG_0246.PNG?raw=true" width="350"></img>
+<img src="extras/IMG_0247.PNG?raw=true" width="350"></img>
+![Image](extras/IMG_0248.PNG?raw=true)
+![Image](extras/IMG_0246.PNG?raw=true)
+![Image](extras/IMG_0247.PNG?raw=true)
 
 ## The Setup I use. 
 ### Pi Zero W, 8 channel relay board & 2 channel relay board.
