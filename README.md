@@ -15,14 +15,10 @@ It does support a master valve or pump. (ie turn on a master device with every z
 <img src="extras/CalendarUI.PNG?raw=true" width="600"></img>
 
 ## In Apple Home app.
-<img src="extras/IMG_0239.png?raw=true" width="350"></img>
-
-<img src="extras/IMG_0248.PNG?raw=true" width="350"></img>
-<img src="extras/IMG_0246.PNG?raw=true" width="350"></img>
-<img src="extras/IMG_0247.PNG?raw=true" width="350"></img>
-![Image](extras/IMG_0248.PNG?raw=true)
-![Image](extras/IMG_0246.PNG?raw=true)
-![Image](extras/IMG_0247.PNG?raw=true)
+<img src="extras/IMG_0246.png?raw=true" width="350"></img>
+<img src="extras/IMG_0247.png?raw=true" width="350"></img>
+<img src="extras/IMG_0248.png?raw=true" width="350"></img>
+* Full support for Irrigation Valve in Homekit.
 
 ## The Setup I use. 
 ### Pi Zero W, 8 channel relay board & 2 channel relay board.
@@ -93,9 +89,16 @@ Please see the [sprinklerd.conf]
 example in the release directory.  Many things are turned off by default, and you may need to enable or configure them for your setup.
 Specifically, make sure you configure your MQTT, Pool Equiptment Labels & Domoticz ID's in there, looking at the file it should be self explanatory. 
 
-## Configuration with home automation hubs
+# Configuration with home automation hubs
 
-Two interfaces are ofered, MQTT and WEB APIs, take your pick as the the best option for your own setup, details of each and some generic setups are below.
+## Apple HomeKit (new way)
+
+See https://github.com/sfeakes/homebridge-sprinklerd for new setup. (need to add ducumentation, but install as you would any other homebridge accessory)
+* See bottom for old homekit integration.
+
+## All other hubs
+
+Two interfaces are offered, MQTT and WEB APIs, take your pick as the the best option for your own setup, details of each and some generic setups are below.
 
 ## MQTT
 sprinklerd supports generic MQTT implimentations, as well as specific Domoticz one described above.
@@ -157,7 +160,7 @@ The JSON that's returned is completley flat, this is so it can be passed with re
 ```
 
 
-## Apple HomeKit
+## Apple HomeKit (old way)
 For the moment, native Homekit support has been removed, it will be added back in the future under a different implimentation. 
 Recomended option for HomeKit support is to make use of the MQTT interface and use [HomeKit2MQTT](https://www.npmjs.com/package/homekit2mqtt) to bridge between sprinklerd and you Apple (phone/tablet/tv & hub).
 * If you don't already have an MQTT broker Installed, install one. Mosquitto is recomended, this can usually be installed with apt-get
