@@ -3,11 +3,14 @@
 
 More details & pics to come
 
-linux daemon to control sprinklers. The control is done through GPIO pins, so simply connect a relay board to the GPOI. Provides web UI, MQTT client & HTTP API endpoints. So you can control your pool equiptment from any phone/tablet or computer, and should work with just about Home control systems, including Apple HomeKit, Samsung, Alexa, Google, etc home hubs.
-It is not designed to be a feature rich solution with elaborate UI, but rather a solution that can be controlled from smart hubs.  It does have a web UI and calendar for scheduling zone runtimes, rain day delay etc. But advanced features like rain censors and web forecast delays should be done through your smat hub. 
+linux daemon to control sprinklers.<br> 
+* <b>This is designed to be small, efficient and fail safe.</b>
+
+The control is done through GPIO pins, so simply connect a relay board to the GPOI. Provides web UI, MQTT client & HTTP API endpoints. So you can control your pool equiptment from any phone/tablet or computer, and should work with just about Home control systems, including Apple HomeKit, Samsung, Alexa, Google, etc home hubs.
+It is not designed to be a feature rich solution with elaborate UI, but rather a solution that can be completley controlled from smart hubs. It can run completley self contained without any automation hub as it does have a web UI and calendar for scheduling zone runtimes, rain day delay etc. But advanced features like integrated rain censors and web forecast delays should be done through your smart hub, or the supplied scripts.
 It does support a master valve or pump. (ie turn on a master device with every zone).
 
-### It does not, and will never provide any layer of security. NEVER directly expose the device running this software to the outside world, only indirectly through the use of Home Automation hub's or other securty measures, e.g. VPNs.
+### It does not provide any layer of security. NEVER directly expose the device running this software to the outside world, only indirectly through the use of Home Automation hub's or other securty measures, e.g. VPNs.
 
 ## Builtin WEB Interface.
 <img src="extras/IMG_0236.png?raw=true" width="350"></img>
@@ -52,7 +55,7 @@ Valves for each zone are connected to the relays, and relays connected to a 24va
 * If all is good enable as service
     * sudo `systemctl start sprinklerd`
 ## More Advanced make
-* sprinklerd uses it's own basic GPIO interaction through sysfs, this may not be enough for all types of relay boards, especially ones that require the use of the GPIO's internal pull-up or pull-down resistor. So sprkinlerd can make use or WiringPi which is a powerful GPIO library. 
+* sprinklerd uses it's own GPIO interaction. This may not be enough for all types of relay boards, especially ones that require the use of the GPIO's internal pull-up or pull-down resistor. So sprkinlerd can make use or WiringPi which is a far more powerful GPIO library with tons of support. 
 * To use WiringPi :-
 * install WiringPI first `http://wiringpi.com/download-and-install/`
 * Make sprinklerd with the below flag
@@ -73,7 +76,7 @@ Manual install for init-d systems
 
 
 ## Hardware
-You will need relays connected to the PI. (add some crap about that here) 
+You will need relays connected to the PI. (add some crap about how to do that here) 
 
 Raspberry Pi Zero is the perfect device for this software. But all Raspberry PI's are inherently unstable devices to be running 24/7/365 in default Linux configrations. This is due to the way they use CF card, a power outage will generally cause CF card coruption. My recomendation is to use what's calles a "read only root" installation of Linux. Converting Raspbian to this is quite simple, but will require some Linux knoladge. There are two methods, one uses overlayfs and if you are not knolagable in Linux this is the easiest option. There are a some downsides to this method on a PI, so my prefered method is to simply use tmpfs on it's own without overlayfs ontop, this is easier to setup initially, but will probably require a few custom things to get right as some services will fail. Once you are up and running, You should search this topic, and there are a plenty of resources, and even some scripts the will do everything for you.  But below are two links that explain the process.
 
@@ -84,17 +87,26 @@ Raspberry Pi Zero is the perfect device for this software. But all Raspberry PI'
 I have my own scripts to do this for me, and probably won't ever document or publish them, but thay are very similar to the 2nd link above.
 
 ## sprinklerd Configuration
-Please see the [sprinklerd.conf]
-(https://github.com/sfeakes/sprinklerd/blob/master/release/sprinklerd.conf) 
+Please see the [sprinklerd.conf](https://github.com/sfeakes/sprinklerd/blob/master/release/sprinklerd.conf) 
 example in the release directory.  Many things are turned off by default, and you may need to enable or configure them for your setup.
 Specifically, make sure you configure your MQTT, Pool Equiptment Labels & Domoticz ID's in there, looking at the file it should be self explanatory. 
+
+## Included scripts in extras directory.
+
+[sprinklerDarkskys.sh](https://github.com/sfeakes/sprinklerd/blob/master/release/sprinklerDarkskys.sh)
+Script to check the chance of rain from darkskys forecast API, if it's greater than a configured percentage then enable the 24h rainDelay on SprinklerD.
+Simply edit the scrips with your values, and use cron to run it 30mins before your sprinkelrs are due to turn on each day. If the chance of rain is over your configured % it will enable SprinklerD's 24h rain delay, which will stop the sprinklers running that day, and the 24h delay will timeout before the sprinklers are due to run the next day. (or be enabeled again if the chance of rain is high)
+
+[sprinklerRainDelay.sh](https://github.com/sfeakes/sprinklerd/blob/master/release/sprinklerRainDelay.sh)
+Script to enable extended rain delays. i.e. I have my weatherstation triger this script when it detects rain. The script will cancel any running zones and enable a rain delay.  You can use a number on command line parameter to enable long delays, (number represents number of days).  So if my rainsensor logs over 1/2" rain in any 24h period it will call this script with a 2 or 3 day delay depending on the amount of rain we've had. 
+
 
 # Configuration with home automation hubs
 
 ## Apple HomeKit (new way)
 
 See https://github.com/sfeakes/homebridge-sprinklerd for new setup. (need to add ducumentation, but install as you would any other homebridge accessory)
-* See bottom for old homekit integration.
+* See bottom for old homekit integration using Homebridge2MQTT.
 
 ## All other hubs
 
