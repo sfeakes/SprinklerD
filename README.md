@@ -6,7 +6,7 @@ More details & pics to come
 linux daemon to control sprinklers.<br> 
 * <b>This is designed to be small, efficient and fail safe.</b>
 
-The control is done through GPIO pins, so simply connect a relay board to the GPOI. Provides web UI, MQTT client & HTTP API endpoints. So you can control your pool equiptment from any phone/tablet or computer, and should work with just about Home control systems, including Apple HomeKit, Samsung, Alexa, Google, etc home hubs.
+The sprinkler zone control is done through GPIO pins, so simply connect a relay board to the GPIO pins, and the realys to your sprinkler valves & power supply. Provides web UI, MQTT client & HTTP API endpoints. So you can control your pool equiptment from any phone/tablet or computer, and should work with just about Home control systems, including Apple HomeKit, Samsung, Alexa, Google, etc home hubs.
 It is not designed to be a feature rich solution with elaborate UI, but rather a solution that can be completley controlled from smart hubs. It can run completley self contained without any automation hub as it does have a web UI and calendar for scheduling zone runtimes, rain day delay etc. But advanced features like integrated rain censors and web forecast delays should be done through your smart hub, or the supplied scripts.
 It does support a master valve or pump. (ie turn on a master device with every zone).
 
@@ -25,7 +25,7 @@ It does support a master valve or pump. (ie turn on a master device with every z
 
 ## The Setup I use. 
 ### Pi Zero W, 8 channel relay board & 2 channel relay board.
-All rain delays are set directly from my home automation hub, and not any locally connected sensors. ie :-
+All rain delays are set directly from my home automation hub, and not any locally connected sensors. (see included scripts in the config section below) ie :-
 * if rain sensor detects rain, cancel any running zones & delay 24h.
 * if rain sensor accumulates more than 5mm rain in 24hours, delay sprinklers for 48 hours.
 * Poll DarySkys API if rain forecast is higher than 50% enable 24h delay.
@@ -93,12 +93,12 @@ Specifically, make sure you configure your MQTT, Pool Equiptment Labels & Domoti
 
 ## Included scripts in extras directory.
 
-[sprinklerDarkskys.sh](https://github.com/sfeakes/sprinklerd/blob/master/release/sprinklerDarkskys.sh)
+[sprinklerDarkskys.sh](https://github.com/sfeakes/sprinklerd/blob/master/extras/sprinklerDarkskys.sh)
 Script to check the chance of rain from darkskys forecast API, if it's greater than a configured percentage then enable the 24h rainDelay on SprinklerD.
 Simply edit the scrips with your values, and use cron to run it 30mins before your sprinkelrs are due to turn on each day. If the chance of rain is over your configured % it will enable SprinklerD's 24h rain delay, which will stop the sprinklers running that day, and the 24h delay will timeout before the sprinklers are due to run the next day. (or be enabeled again if the chance of rain is high)
 
-[sprinklerRainDelay.sh](https://github.com/sfeakes/sprinklerd/blob/master/release/sprinklerRainDelay.sh)
-Script to enable extended rain delays. i.e. I have my weatherstation triger this script when it detects rain. The script will cancel any running zones and enable a rain delay.  You can use a number on command line parameter to enable long delays, (number represents number of days).  So if my rainsensor logs over 1/2" rain in any 24h period it will call this script with a 2 or 3 day delay depending on the amount of rain we've had. 
+[sprinklerRainDelay.sh](https://github.com/sfeakes/sprinklerd/blob/master/extras/sprinklerRainDelay.sh)
+Script to enable extended rain delays. i.e. I have my weatherstation triger this script when it detects rain. The script will cancel any running zones and enable a rain delay.  You can use a number on command line parameter to enable long delays, (number represents number of days).  So if my rainsensor logs over 5mm rain in any 24h period it will call this script with a 2 day delay, or 3 day delay if over 15mm of rain. 
 
 
 # Configuration with home automation hubs
