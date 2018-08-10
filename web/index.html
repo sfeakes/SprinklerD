@@ -314,6 +314,8 @@
                 hidemessage();
               }
               var data = JSON.parse(http.responseText);
+              console.log(data.ActTime);
+              /*
               for (var obj in data) {
                 if (obj == 'title') {
                   document.title = data[obj];
@@ -347,6 +349,7 @@
                   }
                 }
               }
+              */
             }
             else if(http.status >= 400 || http.status == 0) {
               document.getElementById('message-text').innerHTML = 'Error connecting to server';

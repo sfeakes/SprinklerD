@@ -16,7 +16,7 @@ echomsg() { if [ -t 1 ]; then echo "$@" 1>&2; fi; }
 command -v jq >/dev/null 2>&1 || { echoerr "jq is not installed.  Aborting!"; exit 1; }
 command -v bc >/dev/null 2>&1 || { echoerr "bc not installed.  Aborting!"; exit 1; }
 
-probability=$(curl -s "https://api.darksky.net/forecast/"$darkskyAPI"/29.884444,-95.62" | jq '.["daily"].data[0].precipProbability' 2>/dev/null)
+probability=$(curl -s "https://api.darksky.net/forecast/"$darkskyAPI"/"$location | jq '.["daily"].data[0].precipProbability' 2>/dev/null)
 
 if [ $? -ne 0 ]; then
     echoerr "Error reading DarkSkys URL, please check!"
