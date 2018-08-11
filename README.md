@@ -177,7 +177,7 @@ http://sprinklerd.ip.address:port?type=option&option=24hdelay&state=off
 
 * // Sensor options (remote sensors posting to SprinklerD)
 * // These are used to determin if to enable rain delay and cancel running zones.
-<host>?type=sensor&sensor=chanceofrain&value=27  // Set % chance of rain for today to 87%
+<host>?type=sensor&sensor=chanceofrain&value=87  // Set % chance of rain for today to 87%
 <host>?type=sensor&sensor=raintotal&value=0.34   // Set rain total for todaye to 0.34"
 ```
 The JSON that's returned is completley flat, this is so it can be passed with really small lightweight passers, even grep and awk. If you want a full JSON with arrays that's easier to use with full json parsers you can use the below
