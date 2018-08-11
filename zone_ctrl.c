@@ -66,6 +66,16 @@ bool zc_check() {
   return false;
 }
 
+void zc_rain_delay_enabeled() {
+  // Turn off any running zone that was enabeled by cron, leave on any zones that were manually turned on.
+
+  if(_sdconfig_.currentZone.type==zcCRON && _sdconfig_.currentZone.zone > 0) {
+    logMessage (LOG_INFO, "Turning off zone %d '%s' due to rain delay\n",_sdconfig_.currentZone.zone, _sdconfig_.zonecfg[_sdconfig_.currentZone.zone].name);
+    zc_zone(zcSINGLE, _sdconfig_.currentZone.zone, zcOFF, 0);
+  }
+  
+}
+
 void zc_master(zcState state) {
 
   if (!_sdconfig_.master_valve)

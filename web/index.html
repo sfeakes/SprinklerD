@@ -165,7 +165,8 @@
     }
 
     input.btn-toggle-round:checked+label:before {
-      background-color: rgb(76, 217, 100);
+      /*background-color: rgb(76, 217, 100);*/
+      background-color: #2196F3;
     }
 
     input.btn-toggle-round:checked+label:after {
@@ -272,6 +273,10 @@
       html = html+calendarhtmlrow("Fri", 5, zones);
       html = html+calendarhtmlrow("Sat", 6, zones);
       html = html+calendarhtmlrow("Sun", 0, zones);
+      html = html + '<tr><td colspan="2">Delay if chance of rain is above</td><td colspan="'+zones+'" align="left"><input type="number" id="raindelaychance" class="input-ios" onchange="update(this);" pattern="[0-9]*" maxlength="2" inputmode="numeric" min="0" max="100" step="1">percent</td></tr> \
+             <tr><td colspan="2">Delay 24 hours if rain total </td><td colspan="'+zones+'" align="left"><input type="number" id="raindelaytotal1" class="input-ios" onchange="update(this);" pattern="[0-9]*" maxlength="2" inputmode="numeric" min="0" max="10" step="0.1">inches</td></tr> \
+             <tr><td colspan="2">Delay 48 hours if rain total </td><td colspan="'+zones+'" align="left"><input type="number" id="raindelaytotal2" class="input-ios" onchange="update(this);" pattern="[0-9]*" maxlength="2" inputmode="numeric" min="0" max="10" step="0.1">inches</td></tr>' ;
+              
       rnz = document.getElementById('options');
       rnz.innerHTML = rnz.innerHTML.replace("<!-- AUTO HTML -->", html);
     }
@@ -321,7 +326,7 @@
                   document.getElementById('title').innerHTML = data[obj];
                 } if (obj == 'status') {
                   if (data[obj].length > 0)
-                    document.getElementById('status').innerHTML = "Active:&nbsp;"+data[obj];
+                    document.getElementById('status').innerHTML = data[obj].replace('/ /g', '&nbsp;');
                   else
                     document.getElementById('status').innerHTML = "Run now options";
                 } else if (obj == '24hdelay-offtime') {
@@ -335,8 +340,10 @@
                 } else if ( (field = document.getElementById(obj)) != null){
                   if (obj.substr(-5,5) == '-name')
                     field.innerHTML = resize(data[obj]);
-                  else
-                    field.value = data[obj];
+                  else {
+                    if (field.id != document.activeElement.id) // Only update if not being edited
+                      field.value = data[obj];
+                  }
                 } else {
                   if ( (btn = document.getElementById('btn-toggle-' + obj)) != null){
                     if (data[obj] == 'on')
@@ -376,6 +383,9 @@
             http.send(null);
             cleanupCalendar();
           }
+        } else if (type.id.substr(0,9) == 'raindelay'){ // rainChance, rainTotal1d, rainTotal2d
+          http.open('GET', location.href + '?type=config&option='+type.id+'&value='+type.value);
+          http.send(null);
         } else if (type.id.substr(0,11) == 'btn-toggle-'){
           // If there is a 'xx-runtime' id then it's a zone to start, else it's a cfg button
           if ( (rto = document.getElementById(type.name + '-runtime')) != null){

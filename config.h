@@ -78,6 +78,9 @@ struct sprinklerdcfg {
   bool delay24h;
   long delay24h_time;
   bool master_valve;
+  int precipChanceDelay;
+  float precipInchDelay1day;
+  float precipInchDelay2day;
   struct DZcache *dz_cache;
   struct GPIOcfg *zonecfg;
   //struct GPIOcfg *gpiocfg;
@@ -88,6 +91,8 @@ struct sprinklerdcfg {
   struct szRunning currentZone;
   char cache_file[512];
   bool eventToUpdateHappened;
+  int todayRainChance;
+  float todayRainTotal;
 };
 
 

@@ -58,6 +58,10 @@ void write_cache() {
   fprintf(fp, "%d\n", _sdconfig_.calendar);
   fprintf(fp, "%d\n", _sdconfig_.delay24h);
   fprintf(fp, "%li\n", _sdconfig_.delay24h_time);
+  fprintf(fp, "%d\n", _sdconfig_.precipChanceDelay);
+  fprintf(fp, "%.1f\n", _sdconfig_.precipInchDelay1day);
+  fprintf(fp, "%.1f\n", _sdconfig_.precipInchDelay2day);
+  fprintf(fp, "-1\n");
   for (zone=1; zone <= _sdconfig_.zones; zone ++) {
     fprintf(fp, "%d\n", _sdconfig_.zonecfg[zone].default_runtime);
   }
@@ -71,42 +75,55 @@ void write_cache() {
 void read_cache() {
   FILE *fp;
   int i;
+  float f;
   int c = 0;
+  bool z = false;
+  int zs = 0;
 
   fp = fopen(_sdconfig_.cache_file, "r");
   if (fp == NULL) {
     logMessage(LOG_ERR, "Open file failed '%s'\n", _sdconfig_.cache_file);
     return;
   }
-  while (EOF != fscanf (fp, "%d", &i)) {
-    if (c == 0){
+  //while (EOF != fscanf (fp, "%d", &i)) {
+  while (EOF != fscanf (fp, "%f", &f)) {
+    if (f == -1) {
+      z = true;
+      zs = c;
+      c++;
+      continue;
+    }
+    i = (int)f;
+
+    if (z == true) {
+      _sdconfig_.zonecfg[ (c - zs) ].default_runtime = i;
+      logMessage(LOG_DEBUG, "Read default_runtime '%d' for zone %d\n", i, (c - zs) );
+    } else if (c == 0){
       _sdconfig_.calendar = i;
-      logMessage(LOG_DEBUG, "Read calendar '%s' from cache\n", _sdconfig_.calendar?"ON":"OFF");
+      logMessage(LOG_DEBUG, "Read Calendar '%s' from cache\n", _sdconfig_.calendar?"ON":"OFF");
     } else if (c == 1){
       _sdconfig_.delay24h = i;
       logMessage(LOG_DEBUG, "Read delay24h '%s' from cache\n", _sdconfig_.delay24h?"ON":"OFF");
     } else if (c == 2){
       _sdconfig_.delay24h_time = i;
        logMessage(LOG_DEBUG, "Read delay24h endtime '%li' from cache\n",_sdconfig_.delay24h_time);
-    } else if ( c-2 <= _sdconfig_.zones) {
-      _sdconfig_.zonecfg[c-2].default_runtime = i;
+    } else if (c == 3){
+      _sdconfig_.precipChanceDelay = i;
+       logMessage(LOG_DEBUG, "Read Chance of Rain delay '%d' from cache\n",_sdconfig_.precipChanceDelay);
+    } else if (c == 4){
+      _sdconfig_.precipInchDelay1day = f;
+       logMessage(LOG_DEBUG, "Read Rain 1d delay '%f'in from cache\n",_sdconfig_.precipInchDelay1day);
+    } else if (c == 5){
+      _sdconfig_.precipInchDelay2day = f;
+       logMessage(LOG_DEBUG, "Read Rain 2d delay '%f'in from cache\n",_sdconfig_.precipInchDelay2day);
+    }/* else if ( c-1 <= _sdconfig_.zones) {
+      _sdconfig_.gpiocfg[c-1].default_runtime = i;
       logMessage(LOG_DEBUG, "Read default_runtime '%d' for zone %d\n", i, c-1);
-    }
+    }*/
+
     c++;
   }
-/*
-  fscanf (fp, "%d", &i);
-  if (i > -1 && i< 2) {
-    _sdconfig_.system = i;
-    logMessage(LOG_DEBUG, "Read System '%s' from cache\n", _sdconfig_.system?"ON":"OFF");
-  }
-
-  fscanf (fp, "%d", &i);
-  if (i > -1 && i< 5000) {
-    _sdconfig_.delay24h = i;
-    logMessage(LOG_DEBUG, "Read delay24h '%s' from cache\n", _sdconfig_.delay24h?"ON":"OFF");
-  }
-*/
+  
   fclose (fp);
 }
 

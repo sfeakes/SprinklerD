@@ -7,12 +7,14 @@
 #
 darkskyAPI='0123456789abcdef9876543210fedcba'
 location='42.3601,-71.0589'
-probabilityOver=0.5
+probabilityOver=1.0 # Don't set delay from this script, use the SprinklerD config to decide if to set delay
 sprinklerdEnableDelay="http://localhost/?type=option&option=24hdelay&state=reset"
+sprinklerdProbability="http://localhost/?type=sensor&sensor=chanceofrain&value="
 
 echoerr() { printf "%s\n" "$*" >&2; }
 echomsg() { if [ -t 1 ]; then echo "$@" 1>&2; fi; }
 
+command -v curl >/dev/null 2>&1 || { echoerr "curl is not installed.  Aborting!"; exit 1; }
 command -v jq >/dev/null 2>&1 || { echoerr "jq is not installed.  Aborting!"; exit 1; }
 command -v bc >/dev/null 2>&1 || { echoerr "bc not installed.  Aborting!"; exit 1; }
 
@@ -25,6 +27,8 @@ if [ $? -ne 0 ]; then
 fi
 
 echomsg -n "Probability of rain today is "`echo "$probability * 100" | bc`"%"
+
+curl -s "$sprinklerdProbability`echo \"$probability * 100\" | bc`" > /dev/null
 
 if (( $(echo "$probability > $probabilityOver" | bc -l) )); then
   echomsg -n ", enabeling rain delay"

@@ -59,21 +59,28 @@ int build_sprinkler_JSON(char* buffer, int size)
   int i;
   memset(&buffer[0], 0, size);
   int length = 0;
-  char status[30];
+  char status[50];
 
   if(_sdconfig_.currentZone.type!=zcNONE)
-    sprintf(status,"Zone %d : time left %02d:%02d",_sdconfig_.currentZone.zone, _sdconfig_.currentZone.timeleft / 60, _sdconfig_.currentZone.timeleft % 60 );
+    sprintf(status,"Active: Zone %d : time left %02d:%02d",_sdconfig_.currentZone.zone, _sdconfig_.currentZone.timeleft / 60, _sdconfig_.currentZone.timeleft % 60 );
+  else if (_sdconfig_.todayRainChance > 0 || _sdconfig_.todayRainTotal > 0)
+    sprintf(status, "Today:- Chance of rain: %d%%,  Rain total: %.2f\\\"", _sdconfig_.todayRainChance, _sdconfig_.todayRainTotal);
   else
     status[0] = '\0';
 
-  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"calendar\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"zones\" : \"%d\", \"24hdelay-offtime\" : %li, \"status\" : \"%s\"", 
+  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"calendar\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"zones\" : \"%d\", \"24hdelay-offtime\" : %li, \"status\" : \"%s\", \"raindelaychance\" : \"%d\", \"raindelaytotal1\" : \"%.1f\", \"raindelaytotal2\" : \"%.1f\", \"todaychanceofrain\" : \"%d\", \"todayraintotal\" : \"%.2f\"", 
                                     _sdconfig_.name, 
                                     _sdconfig_.calendar?"on":"off",  
                                     _sdconfig_.delay24h?"on":"off", 
                                     _sdconfig_.currentZone.type==zcALL?"on":"off", 
                                     _sdconfig_.zones,
                                     _sdconfig_.delay24h_time,
-                                    status);
+                                    status,
+                                    _sdconfig_.precipChanceDelay,
+                                    _sdconfig_.precipInchDelay1day,
+                                    _sdconfig_.precipInchDelay2day,
+                                    _sdconfig_.todayRainChance,
+                                    _sdconfig_.todayRainTotal);
       
       for (i=1; i <= _sdconfig_.zones ; i++)
       {
@@ -98,13 +105,27 @@ int build_advanced_sprinkler_JSON(char* buffer, int size)
   int i, day;
   memset(&buffer[0], 0, size);
   int length = 0;
-
+/*
   length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"calendar\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"#zones\" : %d, \"24hdelay-offtime\" : %li", 
-                                    _sdconfig_.name, _sdconfig_.calendar?"on":"off",  
+                                    _sdconfig_.name, 
+                                    _sdconfig_.calendar?"on":"off",  
                                     _sdconfig_.delay24h?"on":"off", 
                                     _sdconfig_.currentZone.type==zcALL?"on":"off", 
                                     _sdconfig_.zones,
                                     _sdconfig_.delay24h_time);
+*/
+  length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"calendar\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"zones\" : \"%d\", \"24hdelay-offtime\" : %li, \"raindelaychance\" : \"%d\", \"raindelaytotal1\" : \"%.1f\", \"raindelaytotal2\" : \"%.1f\", \"todaychanceofrain\" : \"%d\", \"todayraintotal\" : \"%.2f\"", 
+                                    _sdconfig_.name, 
+                                    _sdconfig_.calendar?"on":"off",  
+                                    _sdconfig_.delay24h?"on":"off", 
+                                    _sdconfig_.currentZone.type==zcALL?"on":"off", 
+                                    _sdconfig_.zones,
+                                    _sdconfig_.delay24h_time,
+                                    _sdconfig_.precipChanceDelay,
+                                    _sdconfig_.precipInchDelay1day,
+                                    _sdconfig_.precipInchDelay2day,
+                                    _sdconfig_.todayRainChance,
+                                    _sdconfig_.todayRainTotal);
   
   length += sprintf(buffer+length,  ", \"zones\": {");
   for (i=1; i <= _sdconfig_.zones ; i++)

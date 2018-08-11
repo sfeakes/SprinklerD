@@ -442,7 +442,7 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
           reset_delay24h_time(atoi(buf));
         }
         length = build_sprinkler_JSON(buffer, size);
-      } else if (strncasecmp(buf, "allz", 8) == 0 ) {
+      } else if (strncasecmp(buf, "allz", 4) == 0 ) {
         mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
         zc_zone(zcALL, 0, (is_value_ON(buf)?zcON:zcOFF), 0);
         length = build_sprinkler_JSON(buffer, size);
@@ -452,21 +452,50 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
       }
       *changedOption = true;
       //broadcast_sprinklerdstate(nc);
-  } else if ( strcmp(buf, "zone") == 0 || strcmp(buf, "cron") == 0 ) {
-      //logMessage(LOG_DEBUG, "WEB REQUEST zone %s\n",buf);
-      zcRunType type = zcSINGLE;
-      if (strcmp(buf, "cron") == 0)
-        type = zcCRON;
-      
-      mg_get_http_var(&http_msg->query_string, "zone", buf, buflen);
-      zone = atoi(buf);
-      mg_get_http_var(&http_msg->query_string, "runtime", buf, buflen);
-      runtime = atoi(buf);
-      mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
-      //if ( (strncasecmp(buf, "off", 3) == 0 || strncmp(buf, "0", 1) == 0) && zone <= _sdconfig_.zones) {
-      if ( is_value_ON(buf) == true && zone <= _sdconfig_.zones) {
-        zc_zone(type, zone, zcON, runtime);
-        length = build_sprinkler_JSON(buffer, size);
+  } else if (strncasecmp(buf, "config", 6) == 0) {
+    mg_get_http_var(&http_msg->query_string, "option", buf, buflen);
+    if (strncasecmp(buf, "raindelaychance", 15) == 0)
+    {
+      mg_get_http_var(&http_msg->query_string, "value", buf, buflen);
+      _sdconfig_.precipChanceDelay = atoi(buf);
+    }
+    else if (strncasecmp(buf, "raindelaytotal1", 15) == 0)
+    {
+      mg_get_http_var(&http_msg->query_string, "value", buf, buflen);
+      _sdconfig_.precipInchDelay1day = atof(buf);
+    }
+    else if (strncasecmp(buf, "raindelaytotal2", 15) == 0)
+    {
+      mg_get_http_var(&http_msg->query_string, "value", buf, buflen);
+      _sdconfig_.precipInchDelay2day = atof(buf);
+    }
+    length = build_sprinkler_JSON(buffer, size);
+  } else if (strncasecmp(buf, "sensor", 6) == 0) {
+    mg_get_http_var(&http_msg->query_string, "sensor", buf, buflen);
+    if (strncasecmp(buf, "chanceofrain", 13) == 0) {
+      mg_get_http_var(&http_msg->query_string, "value", buf, buflen);
+      setTodayChanceOfRain(atoi(buf));
+    } else if (strncasecmp(buf, "raintotal", 9) == 0) {
+      mg_get_http_var(&http_msg->query_string, "value", buf, buflen);
+      setTodayRainTotal(atof(buf));
+    }
+    length = build_sprinkler_JSON(buffer, size);
+  } else if (strcmp(buf, "zone") == 0 || strcmp(buf, "cron") == 0) {
+    //logMessage(LOG_DEBUG, "WEB REQUEST zone %s\n",buf);
+    zcRunType type = zcSINGLE;
+    if (strcmp(buf, "cron") == 0)
+      type = zcCRON;
+
+    mg_get_http_var(&http_msg->query_string, "zone", buf, buflen);
+    zone = atoi(buf);
+    mg_get_http_var(&http_msg->query_string, "runtime", buf, buflen);
+    runtime = atoi(buf);
+    mg_get_http_var(&http_msg->query_string, "state", buf, buflen);
+    //if ( (strncasecmp(buf, "off", 3) == 0 || strncmp(buf, "0", 1) == 0) && zone <= _sdconfig_.zones) {
+    if (is_value_ON(buf) == true && zone <= _sdconfig_.zones)
+    {
+      zc_zone(type, zone, zcON, runtime);
+      length = build_sprinkler_JSON(buffer, size);
       //} else if ( (strncasecmp(buf, "on", 2) == 0 || strncmp(buf, "1", 1) == 0) && zone <= _sdconfig_.zones) {
       } else if ( is_value_ON(buf) == false && zone <= _sdconfig_.zones) {
         zc_zone(type, zone, zcOFF, runtime);

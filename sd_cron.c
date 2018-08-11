@@ -9,6 +9,37 @@
 
 #define DELAY24H_SEC 86400
 
+
+
+bool setTodayChanceOfRain(int percent) 
+{
+  logMessage(LOG_DEBUG, "Set today's chance of rain = %d\n",percent);
+  if (percent <= 100 && percent >= 0) {
+    _sdconfig_.todayRainChance  = percent;
+    if (_sdconfig_.precipChanceDelay > 0 && _sdconfig_.todayRainChance >= _sdconfig_.precipChanceDelay)
+      enable_delay24h(true);
+    return true;
+  }
+
+  return false;
+}
+
+bool setTodayRainTotal(float rain)
+{
+  _sdconfig_.todayRainTotal = rain;
+  logMessage(LOG_DEBUG, "Today's rain total = %f\n",_sdconfig_.todayRainTotal);
+
+  if (_sdconfig_.precipInchDelay2day > 0 && _sdconfig_.todayRainTotal >= _sdconfig_.precipInchDelay2day) {
+    time_t now;
+    time(&now);
+    reset_delay24h_time(now + (DELAY24H_SEC * 2) ); // today + 2 days in seconds
+  } else if (_sdconfig_.precipInchDelay1day > 0 && _sdconfig_.todayRainTotal >= _sdconfig_.precipInchDelay1day) {
+    enable_delay24h(true);
+  }
+
+  return true;
+}
+
 bool check_delay24h()
 {
   if (_sdconfig_.delay24h_time > 0) {
@@ -43,6 +74,7 @@ void enable_delay24h(bool state)
       time(&_sdconfig_.delay24h_time);
       _sdconfig_.delay24h_time =  _sdconfig_.delay24h_time + DELAY24H_SEC;
       logMessage(LOG_NOTICE, "Turning on rain Delay\n");
+      zc_rain_delay_enabeled();
     } else {
       _sdconfig_.delay24h_time = 0;
       logMessage(LOG_NOTICE, "Turning off rain Delay\n");
@@ -66,11 +98,13 @@ void reset_delay24h_time(unsigned long dtime)
     _sdconfig_.delay24h = true;
     _sdconfig_.delay24h_time = dtime;
     logMessage(LOG_NOTICE, "Reset rain Delay custom time\n");
+    zc_rain_delay_enabeled();
   } else {
     _sdconfig_.delay24h = true;
     time(&_sdconfig_.delay24h_time);
     _sdconfig_.delay24h_time =  _sdconfig_.delay24h_time + DELAY24H_SEC;
     logMessage(LOG_NOTICE, "Reset rain Delay\n");
+    zc_rain_delay_enabeled();
   }
   write_cache();
 }
@@ -128,6 +162,8 @@ void write_cron() {
       }
     }
   }
+  fprintf(fp, "0 0 * * * root /usr/bin/curl -s -o /dev/null 'localhost?type=sensor&sensor=chanceofrain&value=0'\n");
+  fprintf(fp, "0 0 * * * root /usr/bin/curl -s -o /dev/null 'localhost?type=sensor&sensor=raintotal&value=0'\n");
   fprintf(fp, "#***** AUTO GENERATED DO NOT EDIT *****\n");
   fclose(fp);
 
