@@ -138,6 +138,8 @@ sprinklerd/zone/1/set 1
 sprinklerd/zone/zall/set 1   // Cycle all zones using default runtimes.
 sprinklerd/24hdelay/set 1
 sprinklerd/calendar/set 1
+sprinklerd/chanceofrain/set 29  // % chance of rain for today
+sprinklerd/raintotal/set 0.3    // Set rain total in inches.
 ```
 
 

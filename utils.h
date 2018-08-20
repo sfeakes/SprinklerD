@@ -18,6 +18,7 @@ void logMessage(int level, char *format, ...);
 int count_characters(const char *str, char character);
 void run_external(char *command, int state);
 int str2int(const char* str, int len);
+float str2float(const char* str, int len);
 //void readCfg (char *cfgFile);
 int text2elevel(char* level);
 char *elevel2text(int level);

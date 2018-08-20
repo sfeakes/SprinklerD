@@ -7,6 +7,7 @@
 #
 darkskyAPI='0123456789abcdef9876543210fedcba'
 location='42.3601,-71.0589'
+
 probabilityOver=1.0 # Don't set delay from this script, use the SprinklerD config to decide if to set delay
 sprinklerdEnableDelay="http://localhost/?type=option&option=24hdelay&state=reset"
 sprinklerdProbability="http://localhost/?type=sensor&sensor=chanceofrain&value="
@@ -18,13 +19,22 @@ command -v curl >/dev/null 2>&1 || { echoerr "curl is not installed.  Aborting!"
 command -v jq >/dev/null 2>&1 || { echoerr "jq is not installed.  Aborting!"; exit 1; }
 command -v bc >/dev/null 2>&1 || { echoerr "bc not installed.  Aborting!"; exit 1; }
 
-probability=$(curl -s "https://api.darksky.net/forecast/"$darkskyAPI"/"$location | jq '.["daily"].data[0].precipProbability' 2>/dev/null)
+darkskyJSON=$(curl -s "https://api.darksky.net/forecast/"$darkskyAPI"/"$location)
 
 if [ $? -ne 0 ]; then
     echoerr "Error reading DarkSkys URL, please check!"
     echoerr "Maybe you didn't configure your API and location?"
     exit 1;
 fi
+
+probability=$(echo $darkskyJSON | jq '.["daily"].data[0].precipProbability' )
+
+#if [ $? -ne 0 ]; then
+if [ "$probability" == "null" ]; then
+    echoerr "Error reading DarkSkys JSON, please check!"
+    exit 1;
+fi
+
 
 echomsg -n "Probability of rain today is "`echo "$probability * 100" | bc`"%"
 

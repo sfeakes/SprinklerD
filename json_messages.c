@@ -226,7 +226,7 @@ int build_dz_status_message_JSON(char* buffer, int size, int idx, int nvalue, ch
   return strlen(buffer);
 }
 
-bool parseJSONmqttrequest(const char *str, size_t len, int *idx, int *nvalue, char *svalue) {
+bool parseJSONmqttrequest(const char *str, size_t len, int *idx, int *nvalue, char *svalue, const char *svalue_str) {
   int i = 0;
   int found = 0;
   
@@ -252,7 +252,8 @@ bool parseJSONmqttrequest(const char *str, size_t len, int *idx, int *nvalue, ch
             found++;
           }
         }
-      } else if (strncmp("\"svalue1\"", (char *)&str[i], 9) == 0) {
+      //} else if (strncmp("\"svalue1\"", (char *)&str[i], 9) == 0) {
+      } else if (strncmp(svalue_str, (char *)&str[i], 9) == 0) {
         i = i + 9;
         for (; str[i] != ',' && str[i] != '\0'; i++) {
           if (str[i] == ':') {

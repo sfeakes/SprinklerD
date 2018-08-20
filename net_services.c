@@ -124,7 +124,7 @@ bool check_dz_cache(int idx, int value) {
   }
   return false;
 }
-
+/*
 void urldecode(char *dst, const char *src)
 {
   char a, b;
@@ -161,7 +161,7 @@ void urldecode(char *dst, const char *src)
   }
   *dst++ = '\0';
 }
-
+*/
 // Need to update network interface.
 char *generate_mqtt_id(char *buf, int len) {
   extern char *__progname; // glibc populates this
@@ -317,6 +317,7 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
   struct mg_connection *c;
   static char mqtt_topic[250];
   static char mqtt_msg[50];
+  static char last_state_msg[50];
 
   for (c = mg_next(nc->mgr, NULL); c != NULL; c = mg_next(nc->mgr, c)) {
     // Start from 0 since we publish master valve (just a temp measure)
@@ -359,8 +360,11 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
       }
       if (_sdconfig_.dzidx_status > 0) {
         int value =sprinklerdstatus(mqtt_msg, 50);
-        build_dz_status_message_JSON(mqtt_topic, 250, _sdconfig_.dzidx_status, value, mqtt_msg);
-        send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_topic);
+        if (strcmp(last_state_msg, mqtt_msg) != 0) {
+          build_dz_status_message_JSON(mqtt_topic, 250, _sdconfig_.dzidx_status, value, mqtt_msg);
+          send_mqtt_msg(c, _sdconfig_.mqtt_dz_pub_topic, mqtt_topic);
+          strcpy(last_state_msg, mqtt_msg);
+        }
       }
      }
     }
@@ -606,7 +610,7 @@ void action_domoticz_mqtt_message(struct mg_connection *nc, struct mg_mqtt_messa
   int i;
   char svalue[DZ_SVALUE_LEN];
 
-  if (parseJSONmqttrequest(msg->payload.p, msg->payload.len, &idx, &nvalue, svalue)) {
+  if (parseJSONmqttrequest(msg->payload.p, msg->payload.len, &idx, &nvalue, svalue, "\"svalue2\"")) {
     if ( idx <= 0 || check_dz_cache(idx, nvalue))
       return;
     if (idx == _sdconfig_.dzidx_calendar) {
@@ -622,6 +626,9 @@ void action_domoticz_mqtt_message(struct mg_connection *nc, struct mg_mqtt_messa
     } else if (idx == _sdconfig_.dzidx_allzones) {
       zc_zone(zcALL, 0, (nvalue==DZ_ON?zcON:zcOFF), 0);
       logMessage(LOG_INFO, "Domoticz MQTT request to turn %s cycle all zones",(nvalue==DZ_ON?"ON":"OFF"));
+    } else if (idx == _sdconfig_.dzidx_rainsensor) {
+      logMessage(LOG_INFO, "Domoticz MQTT rain sensor update, total %s",svalue);
+      setTodayRainTotal(atof(svalue));
     } else {
      for (i=1; i <= _sdconfig_.zones ; i++)
      {
@@ -648,8 +655,7 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
   char *pt3 = NULL;
   char *pt4 = NULL;
 
-  // NSF change 10 to strlen(_sdconfig_.mqtt_topic)+1   **** BUT TEST.***
-  for (i=10; i < msg->topic.len; i++) {
+  for (i=strlen(_sdconfig_.mqtt_topic); i < msg->topic.len; i++) {
     if ( msg->topic.p[i] == '/' ) {
       if (pt2 == NULL) {
         pt2 = (char *)&msg->topic.p[++i];
@@ -680,6 +686,8 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
 
   logMessage(LOG_DEBUG, "MQTT: topic %.*s %.*s\n",msg->topic.len, msg->topic.p, msg->payload.len, msg->payload.p);
 
+  logMessage(LOG_DEBUG, "MQTT: pt2 %s\n", pt2);
+
   //logMessage(LOG_DEBUG, "MQTT: pt2 %.*s == %s %c\n", 4, pt2, strncmp(pt2, "zone", 4) == 0?"YES":"NO", pt2[4]);
 /*
   if (pt2 != NULL && pt3 != NULL && pt4 != NULL && strncmp(pt2, "zone", 4) == 0 && strncmp(pt4, "set", 3) == 0 ) {
@@ -691,6 +699,8 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
       logMessage(LOG_WARNING, "MQTT: unknown zone %d\n",zone);
     }
   } else*/
+  //setTodayRainTotal(atof(svalue));
+
   if (pt2 != NULL && pt3 != NULL && pt4 != NULL && strncmp(pt2, "zone", 4) == 0 && strncmp(pt3, "duration", 8) == 0 && strncmp(pt4, "set", 3) == 0 ) {
     int zone = atoi(&pt2[4]);
     if (zone > 0 && zone <= _sdconfig_.zones) {
@@ -710,6 +720,14 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "cycleallzones", 13) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     zc_zone(zcALL, 0, status, 0);
     logMessage(LOG_DEBUG, "MQTT: Cycle all zones %s\n",status==zcON?"ON":"OFF");
+  } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "raintotal", 9) == 0 && strncmp(pt3, "set", 3) == 0 ) {
+    float v = str2float(msg->payload.p, msg->payload.len);
+    logMessage(LOG_DEBUG, "MQTT: Rain total %.2f\n",v);
+    setTodayRainTotal(v);
+  } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "chanceofrain", 12) == 0 && strncmp(pt3, "set", 3) == 0 ) {
+    int v = str2int(msg->payload.p, msg->payload.len);
+    logMessage(LOG_DEBUG, "MQTT: Chance of rain %d%%\n",v);
+    setTodayChanceOfRain(v);
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "zone", 4) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     int zone = atoi(&pt2[4]);
     if (zone > 0 && zone <= _sdconfig_.zones) {

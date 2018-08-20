@@ -255,6 +255,7 @@ void readCfg(char *inifile)
   _sdconfig_.dzidx_24hdelay = ini_getl("SPRINKLERD", "DZIDX_24HDELAY", 0, inifile);
   _sdconfig_.dzidx_allzones = ini_getl("SPRINKLERD", "DZIDX_ALL_ZONES", 0, inifile);
   _sdconfig_.dzidx_status = ini_getl("SPRINKLERD", "DZIDX_STATUS", 0, inifile);
+  _sdconfig_.dzidx_rainsensor = ini_getl("SPRINKLERD", "DZIDX_RAINSENSOR", 0, inifile);
 
   logMessage (LOG_INFO, "Name = %s\n", _sdconfig_.name);
   logMessage (LOG_INFO, "Port = %s\n", _sdconfig_.socket_port);

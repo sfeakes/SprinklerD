@@ -26,15 +26,21 @@ bool setTodayChanceOfRain(int percent)
 
 bool setTodayRainTotal(float rain)
 {
-  _sdconfig_.todayRainTotal = rain;
+  if (_sdconfig_.todayRainTotal == rain)
+    return true;
+   
+   _sdconfig_.todayRainTotal = rain;
+
   logMessage(LOG_DEBUG, "Today's rain total = %f\n",_sdconfig_.todayRainTotal);
 
+  time_t now;
+  time(&now);
+
   if (_sdconfig_.precipInchDelay2day > 0 && _sdconfig_.todayRainTotal >= _sdconfig_.precipInchDelay2day) {
-    time_t now;
-    time(&now);
     reset_delay24h_time(now + (DELAY24H_SEC * 2) ); // today + 2 days in seconds
   } else if (_sdconfig_.precipInchDelay1day > 0 && _sdconfig_.todayRainTotal >= _sdconfig_.precipInchDelay1day) {
-    enable_delay24h(true);
+    //enable_delay24h(true);
+    reset_delay24h_time(now + DELAY24H_SEC);
   }
 
   return true;

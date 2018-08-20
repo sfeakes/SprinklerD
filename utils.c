@@ -328,7 +328,11 @@ int str2int(const char* str, int len)
 }
 
 
-
+// NSF come back and do this correctly
+float str2float(const char* str, int len)
+{
+  return (float)strtod(str, NULL);
+}
 
 
 
