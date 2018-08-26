@@ -15,8 +15,8 @@ void zc_master(zcState state);
 
 int calc_timeleft() {
   if (_sdconfig_.currentZone.zone != -1) {
-    // See if the duration time changed since we started.
-    if ( _sdconfig_.currentZone.duration != _sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime)
+    // See if the duration time changed since we started, on was not a cron request.
+    if ( _sdconfig_.currentZone.type != zcCRON && _sdconfig_.currentZone.duration != _sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime)
       _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime;
     
     time_t now;
@@ -91,6 +91,8 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
 
   int i;
   // Check to see if duplicate request
+  logMessage (LOG_DEBUG, "Request to turn zone %d %s for %d min requesttype %d\n",zone,(state==zcON?"on":"off"),length,type);
+
   if (zone > 0 && zone <= _sdconfig_.zones) {
     zcState cstate = _sdconfig_.zonecfg[zone].on_state==digitalRead (_sdconfig_.zonecfg[zone].pin)?zcON:zcOFF;
     if (cstate == state) {
@@ -130,6 +132,7 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
   if (length == 0) {
      //get default length here
      length = _sdconfig_.zonecfg[zone].default_runtime;
+logMessage (LOG_DEBUG, "Use default time of %s\n",length);
   }
 
   // NSF need to Check the array is valid
@@ -153,6 +156,7 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
     _sdconfig_.currentZone.type=type;
     _sdconfig_.currentZone.zone=zone;
     _sdconfig_.currentZone.duration=length;
+  logMessage (LOG_DEBUG, "set runtime to %d and %d\n",length,_sdconfig_.currentZone.duration);
     time(&_sdconfig_.currentZone.started_time);
     calc_timeleft();
     return true;

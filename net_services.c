@@ -501,18 +501,18 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
       zc_zone(type, zone, zcON, runtime);
       length = build_sprinkler_JSON(buffer, size);
       //} else if ( (strncasecmp(buf, "on", 2) == 0 || strncmp(buf, "1", 1) == 0) && zone <= _sdconfig_.zones) {
-      } else if ( is_value_ON(buf) == false && zone <= _sdconfig_.zones) {
-        zc_zone(type, zone, zcOFF, runtime);
-        length = build_sprinkler_JSON(buffer, size);
+    } else if ( is_value_ON(buf) == false && zone <= _sdconfig_.zones) {
+      zc_zone(type, zone, zcOFF, runtime);
+      length = build_sprinkler_JSON(buffer, size);
+    } else {
+      if (zone > _sdconfig_.zones) {
+        logMessage(LOG_WARNING, "Bad request unknown zone %d\n",zone);
+        length = sprintf(buffer,  "{ \"error\": \"Bad request unknown zone %d\"}", zone);
       } else {
-        if (zone > _sdconfig_.zones) {
-          logMessage(LOG_WARNING, "Bad request unknown zone %d\n",zone);
-          length = sprintf(buffer,  "{ \"error\": \"Bad request unknown zone %d\"}", zone);
-        } else {
-          logMessage(LOG_WARNING, "Bad request on zone %d, unknown state %s\n",zone, buf);
-          length = sprintf(buffer,  "{ \"error\": \"Bad request on zone %d, unknown state %s\"}", zone, buf);
-        }
+        logMessage(LOG_WARNING, "Bad request on zone %d, unknown state %s\n",zone, buf);
+        length = sprintf(buffer,  "{ \"error\": \"Bad request on zone %d, unknown state %s\"}", zone, buf);
       }
+    }
   } else if (strcmp(buf, "zrtcfg") == 0) {
       //logMessage(LOG_DEBUG, "WEB REQUEST cfg %s\n",buf);
       mg_get_http_var(&http_msg->query_string, "zone", buf, buflen);

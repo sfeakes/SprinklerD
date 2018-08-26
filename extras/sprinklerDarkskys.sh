@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 #  darkskyAPI            = your DarkSky API key below, it's free to get one 
 #  location              = your location lat,long
@@ -5,8 +6,9 @@
 #                          Range is 0 to 1, so 0.5 is 50%
 #  sprinklerdEnableDelay = the URL to SprinklerD
 #
-darkskyAPI='0123456789abcdef9876543210fedcba'
-location='42.3601,-71.0589'
+#darkskyAPI='0123456789abcdef9876543210fedcba'
+#location='42.3601,-71.0589'
+
 
 probabilityOver=1.0 # Don't set delay from this script, use the SprinklerD config to decide if to set delay
 sprinklerdEnableDelay="http://localhost/?type=option&option=24hdelay&state=reset"
