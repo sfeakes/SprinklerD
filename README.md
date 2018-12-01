@@ -122,7 +122,7 @@ https://github.com/nfarina/homebridge
 See https://github.com/sfeakes/homebridge-sprinklerd for package content
 
 ```
-sudo npm install -g homebridge-aqualinkd
+sudo npm install -g homebridge-sprinklerd
 ```
 
 Configure as you would any other homebridge accessory. i.e Add the platform details to homebridge config.json
