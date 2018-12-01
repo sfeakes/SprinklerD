@@ -109,7 +109,22 @@ Script to enable extended rain delays. i.e. I have my weatherstation triger this
 
 ## Apple HomeKit (new way)
 
-See https://github.com/sfeakes/homebridge-sprinklerd for new setup. (need to add ducumentation, but install as you would any other homebridge accessory)
+See https://github.com/sfeakes/homebridge-sprinklerd for new setup. Install as you would any other homebridge accessory, Then add the platform details to homebridge config.json
+```
+"platforms": [
+        {
+            "platform": "sprinklerd",
+            "name": "sprinklerd",
+            "server": "my-server-or-ip-running-sprinklerd",
+            "port": "80",
+            "mqtt": {
+              "host": "my-mqtt-server",
+              "port": 1883,
+              "topic": "sprinklerd"
+            }
+       }
+    ],
+```
 * See bottom for old homekit integration using Homebridge2MQTT.
 
 ## All other hubs

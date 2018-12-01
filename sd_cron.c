@@ -16,8 +16,10 @@ bool setTodayChanceOfRain(int percent)
   logMessage(LOG_DEBUG, "Set today's chance of rain = %d\n",percent);
   if (percent <= 100 && percent >= 0) {
     _sdconfig_.todayRainChance  = percent;
-    if (_sdconfig_.precipChanceDelay > 0 && _sdconfig_.todayRainChance >= _sdconfig_.precipChanceDelay)
-      enable_delay24h(true);
+    if (_sdconfig_.precipChanceDelay > 0 && _sdconfig_.todayRainChance >= _sdconfig_.precipChanceDelay) {
+      //enable_delay24h(true);
+      reset_delay24h_time(0); // will add 24hours or reset
+    }
     return true;
   }
 
@@ -99,17 +101,17 @@ void reset_delay24h_time(unsigned long dtime)
 
   time_t now;
   time(&now);
-  logMessage(LOG_NOTICE, "Reset rain Delay request %d  now %d\n", dtime, now);
+  //logMessage(LOG_NOTICE, "Reset rain Delay request %d  now %d\n", dtime, now);
   if (dtime > now) {
     _sdconfig_.delay24h = true;
     _sdconfig_.delay24h_time = dtime;
-    logMessage(LOG_NOTICE, "Reset rain Delay custom time\n");
+    logMessage(LOG_NOTICE, "Reset rain Delay custom time %s\n", ctime(&_sdconfig_.delay24h_time));
     zc_rain_delay_enabeled();
   } else {
     _sdconfig_.delay24h = true;
     time(&_sdconfig_.delay24h_time);
     _sdconfig_.delay24h_time =  _sdconfig_.delay24h_time + DELAY24H_SEC;
-    logMessage(LOG_NOTICE, "Reset rain Delay\n");
+    logMessage(LOG_NOTICE, "Reset rain Delay to %s\n", ctime(&_sdconfig_.delay24h_time));
     zc_rain_delay_enabeled();
   }
   write_cache();
