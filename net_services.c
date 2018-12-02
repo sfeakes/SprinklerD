@@ -686,7 +686,7 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
 
   logMessage(LOG_DEBUG, "MQTT: topic %.*s %.*s\n",msg->topic.len, msg->topic.p, msg->payload.len, msg->payload.p);
 
-  logMessage(LOG_DEBUG, "MQTT: pt2 %s\n", pt2);
+  //logMessage(LOG_DEBUG, "MQTT: pt2 %s\n", pt2);
 
   //logMessage(LOG_DEBUG, "MQTT: pt2 %.*s == %s %c\n", 4, pt2, strncmp(pt2, "zone", 4) == 0?"YES":"NO", pt2[4]);
 /*
@@ -708,6 +708,8 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
       _sdconfig_.zonecfg[zone].default_runtime = v / 60;
       _sdconfig_.eventToUpdateHappened = true;
       logMessage(LOG_DEBUG, "MQTT: Default runtime zone %d is %d\n",zone,_sdconfig_.zonecfg[zone].default_runtime);
+    } else {
+      logMessage(LOG_DEBUG, "MQTT: BAD Default runtime zone %d is %d\n",zone,_sdconfig_.zonecfg[zone].default_runtime);
     }
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "24hdelay", 8) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     enable_delay24h(status==zcON?true:false);

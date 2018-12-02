@@ -132,7 +132,7 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
   if (length == 0) {
      //get default length here
      length = _sdconfig_.zonecfg[zone].default_runtime;
-logMessage (LOG_DEBUG, "Use default time of %s\n",length);
+     logMessage (LOG_DEBUG, "Use default time of %d\n",length);
   }
 
   // NSF need to Check the array is valid
