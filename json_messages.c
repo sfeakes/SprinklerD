@@ -173,7 +173,7 @@ int build_homebridge_sprinkler_JSON(char* buffer, int size)
   length += sprintf(buffer+length,  "{ \"title\" : \"%s\", ", _sdconfig_.name);
 
   length += sprintf(buffer+length,  " \"devices\": [");
-  for (i=0; i <= _sdconfig_.zones ; i++)
+  for (i=(_sdconfig_.master_valve?0:1); i <= _sdconfig_.zones ; i++)
   {
     length += sprintf(buffer+length,  "{\"type\" : \"zone\", \"zone\": %d, \"name\": \"%s\", \"state\": \"%s\", \"duration\": %d, \"id\" : \"zone%d\" },",
                                       _sdconfig_.zonecfg[i].zone,
