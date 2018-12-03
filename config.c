@@ -307,13 +307,20 @@ void readCfg(char *inifile)
         //_sdconfig_.zonecfg[i].master_valve = ini_getl(str, "MASTER_VALVE", NO, inifile);
         _sdconfig_.zonecfg[i].default_runtime = ini_getl(str, "DEFAULT_RUNTIME", 10, inifile);
         ini_gets(str, "NAME", NULL, _sdconfig_.zonecfg[idx].name, sizearray(_sdconfig_.zonecfg[idx].name), inifile);
-
+        /*
          logMessage (LOG_DEBUG,"Zone Config        : %s\n%25s : %d\n%25s : %d\n%25s : %d\n%25s : %d\n%25s : %d\n",
               _sdconfig_.zonecfg[i].name,
               "PIN",_sdconfig_.zonecfg[i].pin,
               "Set pull up/down", _sdconfig_.zonecfg[i].set_pull_updown, 
               "ON state", _sdconfig_.zonecfg[i].on_state, 
               "Master valve", _sdconfig_.zonecfg[i].master_valve,
+              "Domoticz IDX", _sdconfig_.zonecfg[i].dz_idx);
+         */
+          logMessage (LOG_DEBUG,"Zone Config        : %s\n%25s : %d\n%25s : %d\n%25s : %d\n%25s : %d\n",
+              _sdconfig_.zonecfg[i].name,
+              "PIN",_sdconfig_.zonecfg[i].pin,
+              "Set pull up/down", _sdconfig_.zonecfg[i].set_pull_updown,
+              "ON state", _sdconfig_.zonecfg[i].on_state,
               "Domoticz IDX", _sdconfig_.zonecfg[i].dz_idx);
          idx++;
       } else {

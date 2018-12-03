@@ -46,7 +46,7 @@ struct GPIOcfg {
   //int ignore_requests;
   int zone;
   int default_runtime;
-  bool master_valve;
+  //bool master_valve;
   //struct GPIOextra *extra;
 };
 
