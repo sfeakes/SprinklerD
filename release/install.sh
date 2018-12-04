@@ -31,6 +31,24 @@ if [[ $(mount | grep " / " | grep "(ro,") ]]; then
   exit 1
 fi
 
+if [ "$1" == "uninstall" ] || [ "$1" == "-u" ] || [ "$1" == "remove" ]; then
+  systemctl stop $SERVICE > /dev/null 2>&1
+  systemctl disable $SERVICE  > /dev/null 2>&1
+  rm -f $BINLocation/$BIN
+  rm -f $SRVLocation/$SRV
+  rm -f $DEFLocation/$DEF
+  rm -f $MDNSLocation/$MDNS
+  rm -rf $WEBLocation
+  if [ -f $CFGLocation/$CFG ]; then
+    cache=$(cat $CFGLocation/$CFG | grep CACHE | cut -d= -f2 | sed -e 's/^[ \t]*//' | sed -e 's/ *$//')
+    rm -f $cache
+    rm -f $CFGLocation/$CFG 
+  fi
+  rm -f "/etc/cron.d/sprinklerd"
+  echo "SprinklerD & configuration removed from system"
+  exit
+fi
+
 # Check cron.d options
 if [ ! -d "/etc/cron.d" ]; then
   echo "The version of Cron may not support chron.d, if so the calendar will not work"
