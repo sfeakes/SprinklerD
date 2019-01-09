@@ -197,6 +197,8 @@ void publish_zone_mqtt(struct mg_connection *nc, struct GPIOcfg *gpiopin) {
   static char mqtt_topic[250];
   static char mqtt_msg[50];
 
+printf("PUBLISH pin %d\n",gpiopin->pin);
+
   if (_sdconfig_.enableMQTTaq == true) {
     // sprintf(mqtt_topic, "%s/%s", _sdconfig_.mqtt_topic, gpiopin->name);
     sprintf(mqtt_topic, "%s/zone%d", _sdconfig_.mqtt_topic, gpiopin->zone);
@@ -321,7 +323,7 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
 
   for (c = mg_next(nc->mgr, NULL); c != NULL; c = mg_next(nc->mgr, c)) {
     // Start from 0 since we publish master valve (just a temp measure)
-    for (i=0; i <= _sdconfig_.zones ; i++)
+    for (i=(_sdconfig_.master_valve?0:1); i <= _sdconfig_.zones ; i++)
     {
       if (is_websocket(c)) {
         //ws_send(c, data);
