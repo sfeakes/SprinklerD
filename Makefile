@@ -19,7 +19,7 @@ LIBS := $(WPI_LIB) -lm -lpthread
 $DBG =
 
 # define any compile-time flags
-GCCFLAGS = -Wall
+GCCFLAGS = -Wall -O3
 #CFLAGS = -Wall -lpthread -lwiringPi -lwiringPiDev -lm -I. -I./minIni
 CFLAGS = $(GCCFLAGS) -I. -I./minIni $(DBG) $(LIBS) -D MG_DISABLE_MD5 -D MG_DISABLE_HTTP_DIGEST_AUTH -D MG_DISABLE_MD5 -D MG_DISABLE_JSON_RPC
 #CFLAGS = -Wextra -Wall -g -I./wiringPI

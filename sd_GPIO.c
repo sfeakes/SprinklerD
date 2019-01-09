@@ -15,6 +15,26 @@
 #include "utils.h"
 #include "sd_GPIO.h"
 
+const char *_piModelNames [16] =
+  {
+    "Model A",    //  0
+    "Model B",    //  1
+    "Model A+",   //  2
+    "Model B+",   //  3
+    "Pi 2",       //  4
+    "Alpha",      //  5
+    "CM",         //  6
+    "Unknown07",  // 07
+    "Pi 3",       // 08
+    "Pi Zero",    // 09
+    "CM3",        // 10
+    "Unknown11",  // 11
+    "Pi Zero-W",  // 12
+    "Pi 3+",      // 13
+    "Unknown New 14",       // 14
+    "Unknown New 15",       // 15
+  } ;
+
 static bool _ever = false;
 void gpioDelay (unsigned int howLong);
 
@@ -68,22 +88,26 @@ int piBoardId ()
     logMessage (LOG_ERR, "piBoardId: Unknown \"Revision\" line (no hex digit at start of revision)") ;
 
   revision = (unsigned int)strtol (c, NULL, 16) ; // Hex number with no leading 0x
-
+   
 // Check for new way:
 
   if ((revision &  (1 << 23)) != 0)	// New way
   {/*
     bRev      = (revision & (0x0F <<  0)) >>  0 ;*/
     bType     = (revision & (0xFF <<  4)) >>  4 ;
-		return bType;
 		/*
     bProc     = (revision & (0x0F << 12)) >> 12 ;	// Not used for now.
     bMfg      = (revision & (0x0F << 16)) >> 16 ;
     bMem      = (revision & (0x07 << 20)) >> 20 ;
     bWarranty = (revision & (0x03 << 24)) != 0 ;
     */
+
+    logMessage (LOG_DEBUG, "piBoard Model: %s\n", _piModelNames[bType]) ;
+    
+    return bType;
   }
 
+  logMessage (LOG_ERR, "piBoard Model: UNKNOWN\n");
   return PI_MODEL_UNKNOWN;
 }
 
@@ -93,11 +117,15 @@ bool gpioSetup() {
 
 	switch ( piBoardId() )
   {
-    case PI_MODEL_A:	case PI_MODEL_B:
-    case PI_MODEL_AP:	case PI_MODEL_BP:
-    case PI_ALPHA:	case PI_MODEL_CM:
-    case PI_MODEL_ZERO:	case PI_MODEL_ZERO_W:
-		case PI_MODEL_UNKNOWN:
+    case PI_MODEL_A:	
+    case PI_MODEL_B:
+    case PI_MODEL_AP:	
+    case PI_MODEL_BP:
+    case PI_ALPHA:	
+    case PI_MODEL_CM:
+    case PI_MODEL_ZERO:	
+    case PI_MODEL_ZERO_W:
+    //case PI_MODEL_UNKNOWN:
       piGPIObase = (GPIO_BASE_P1 + GPIO_OFFSET);
       break ;
 
@@ -572,15 +600,14 @@ bool registerGPIOinterrupt(int pin, int mode, void (*function)(void *args), void
 
 //#define TEST_HARNESS
 
+#ifdef TEST_HARNESS
+
 #define GPIO_OFF   0x00005000  /* Offset from IO_START to the GPIO reg's. */
 
 /* IO_START and IO_BASE are defined in hardware.h */
 
 #define GPIO_START (IO_START_2 + GPIO_OFF) /* Physical addr of the GPIO reg. */
 #define GPIO_BASE_NEW  (IO_BASE_2  + GPIO_OFF) /* Virtual addr of the GPIO reg. */
-
-
-#ifdef TEST_HARNESS
 
 #include <stdarg.h>
 #include <errno.h>

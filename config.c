@@ -307,7 +307,14 @@ void readCfg(char *inifile)
         //_sdconfig_.zonecfg[i].master_valve = ini_getl(str, "MASTER_VALVE", NO, inifile);
         _sdconfig_.zonecfg[i].default_runtime = ini_getl(str, "DEFAULT_RUNTIME", 10, inifile);
         //ini_gets(str, "NAME", NULL, _sdconfig_.zonecfg[idx].name, sizearray(_sdconfig_.zonecfg[idx].name), inifile);
-	ini_gets(str, "NAME", NULL, _sdconfig_.zonecfg[i].name, sizearray(_sdconfig_.zonecfg[i].name), inifile);
+	      ini_gets(str, "NAME", NULL, _sdconfig_.zonecfg[i].name, sizearray(_sdconfig_.zonecfg[i].name), inifile);
+#ifndef USE_WIRINGPI
+        if ( ! validGPIO(pin) ) {
+          logMessage (LOG_ERR, "GPIO %d is not valid, found in ZONE:%d of configuration file %s \n",pin, i, inifile);
+          pin = GPIO_MAX; // Set pin to MAX so we can continue to run if error is not fixed.
+          sprintf(_sdconfig_.zonecfg[i].name, "ERROR in cfg");
+        }
+#endif
         /*
          logMessage (LOG_DEBUG,"Zone Config        : %s\n%25s : %d\n%25s : %d\n%25s : %d\n%25s : %d\n%25s : %d\n",
               _sdconfig_.zonecfg[i].name,

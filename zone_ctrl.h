@@ -22,5 +22,6 @@ struct szRunning {
 bool zc_check();
 bool zc_zone(zcRunType type, int zone, zcState state, int length);
 void zc_rain_delay_enabeled();
-
+zcState zc_state(int zone);
+void zc_update_runtime(int zone);
 #endif 

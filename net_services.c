@@ -381,6 +381,13 @@ int is_value_ON(char *buf) {
   return -1;
 }
 
+bool is_value_flip(char *buf) {
+  if (strncasecmp(buf, "flip", 4) == 0 || strncasecmp(buf, "toggle", 6) == 0 )
+    return true;
+  else
+    return false;
+}
+
 int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, char *buffer, int size, bool *changedOption) {
   static int buflen = 50;
   char buf[buflen];
@@ -504,6 +511,8 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
     } else if ( is_value_ON(buf) == false && zone <= _sdconfig_.zones) {
       zc_zone(type, zone, zcOFF, runtime);
       length = build_sprinkler_JSON(buffer, size);
+    } else if ( is_value_flip(buf) == true && zone <= _sdconfig_.zones) {
+      zc_zone(type, zone, !zc_state(zone), runtime);
     } else {
       if (zone > _sdconfig_.zones) {
         logMessage(LOG_WARNING, "Bad request unknown zone %d\n",zone);
@@ -519,10 +528,11 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
       zone = atoi(buf);
       mg_get_http_var(&http_msg->query_string, "time", buf, buflen);
       runtime = atoi(buf);
-      if (zone > 0 && zone <= _sdconfig_.zones && runtime > 0) {
+      if (zone > 0 && zone <= _sdconfig_.zones && runtime > -1) {
         _sdconfig_.zonecfg[zone].default_runtime = runtime;
         logMessage(LOG_DEBUG, "changed default runtime on zone %d, to %d\n",zone, runtime);
         length = build_sprinkler_JSON(buffer, size);
+        zc_update_runtime(zone);
         *changedOption = true;
       } else
         length += sprintf(buffer,  "{ \"error\": \"bad request zone %d runtime %d\"}",zone,runtime);
@@ -707,6 +717,7 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
       int v = str2int(msg->payload.p, msg->payload.len);
       _sdconfig_.zonecfg[zone].default_runtime = v / 60;
       _sdconfig_.eventToUpdateHappened = true;
+      zc_update_runtime(zone);
       logMessage(LOG_DEBUG, "MQTT: Default runtime zone %d is %d\n",zone,_sdconfig_.zonecfg[zone].default_runtime);
     } else {
       logMessage(LOG_DEBUG, "MQTT: BAD Default runtime zone %d is %d\n",zone,_sdconfig_.zonecfg[zone].default_runtime);

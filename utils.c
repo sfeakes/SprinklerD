@@ -114,7 +114,7 @@ void logMessage(int level, char *format, ...)
   //if (_debuglog_ == false && level == LOG_DEBUG)
   //  return;
   
-  char buffer[MXPRNT];
+  char buffer[MXPRNT+1];
   va_list args;
   va_start(args, format);
   strncpy(buffer, "         ", 8);

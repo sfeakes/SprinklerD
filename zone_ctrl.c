@@ -1,4 +1,3 @@
-
 #ifdef USE_WIRINGPI
   #include <wiringPi.h>
 #else
@@ -16,8 +15,8 @@ void zc_master(zcState state);
 int calc_timeleft() {
   if (_sdconfig_.currentZone.zone != -1) {
     // See if the duration time changed since we started, on was not a cron request.
-    if ( _sdconfig_.currentZone.type != zcCRON && _sdconfig_.currentZone.duration != _sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime)
-      _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime;
+    //if ( _sdconfig_.currentZone.type != zcCRON && _sdconfig_.currentZone.duration != _sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime)
+    //  _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime;
     
     time_t now;
     time(&now);
@@ -29,6 +28,46 @@ int calc_timeleft() {
   //logMessage (LOG_DEBUG, "Zone %d time left %d %d min\n",_sdconfig_.currentZone.zone, _sdconfig_.currentZone.timeleft, (_sdconfig_.currentZone.timeleft / 60) +1);
 
   return _sdconfig_.currentZone.timeleft;
+}
+
+zcState zc_state(int zone) {
+  if (zone > 0 && zone <= _sdconfig_.zones) {
+    return (digitalRead(_sdconfig_.zonecfg[zone].pin) == _sdconfig_.zonecfg[zone].on_state ? zcON : zcOFF);
+  } else {
+    return zcOFF; // If invalid zone just return off, maybe change to NULL
+  }
+}
+
+int start_next_zone(int startz) {
+
+  int zone = startz+1;
+
+  while( _sdconfig_.zonecfg[zone].default_runtime <= 0  ) {
+    logMessage (LOG_INFO, "Run Zone, skipping zone %d due to runtime of %d\n",zone,_sdconfig_.zonecfg[zone].default_runtime);
+    zone++;
+    if (zone > _sdconfig_.zones) { // No more zones left to run, turn everything off
+      _sdconfig_.currentZone.type=zcNONE;
+      _sdconfig_.currentZone.zone=-1;
+      _sdconfig_.currentZone.timeleft = 0;
+      zc_master(zcOFF);
+      return -1;
+    }
+  }
+
+  _sdconfig_.currentZone.zone=zone;
+  zc_start(_sdconfig_.currentZone.zone);
+  zc_master(zcON);
+  time(&_sdconfig_.currentZone.started_time);
+  _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime;
+  calc_timeleft();
+
+  return zone;
+}
+
+void zc_update_runtime(int zone) {
+  if (zone > 0 && zone < _sdconfig_.zones && zone == _sdconfig_.currentZone.zone) {
+    _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[zone].default_runtime;
+  }
 }
 
 bool zc_check() {
@@ -47,11 +86,7 @@ bool zc_check() {
   if (calc_timeleft() <= 0){
     if (_sdconfig_.currentZone.type==zcALL && _sdconfig_.currentZone.zone < _sdconfig_.zones) {
       zc_stop(_sdconfig_.currentZone.zone);
-      _sdconfig_.currentZone.zone++;
-      zc_start(_sdconfig_.currentZone.zone);
-      time(&_sdconfig_.currentZone.started_time);
-      _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime;
-      calc_timeleft();
+      start_next_zone(_sdconfig_.currentZone.zone);
     } else {
       zc_master(zcOFF);
       zc_stop(_sdconfig_.currentZone.zone);
@@ -118,13 +153,9 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
     }
     _sdconfig_.currentZone.type=zcNONE;
     if (state == zcON) {
-      zc_start(1);
-      zc_master(zcON);
-      _sdconfig_.currentZone.zone=1;
-      time(&_sdconfig_.currentZone.started_time);
-      _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[1].default_runtime;
-      _sdconfig_.currentZone.type=zcALL;
-      calc_timeleft();
+      if ( start_next_zone(0) != -1 ) { // Pass 0 as start_next_zone will incrument zone   
+       _sdconfig_.currentZone.type=zcALL;
+      }
     }
     return true;
   }
@@ -135,31 +166,31 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
      logMessage (LOG_DEBUG, "Use default time of %d\n",length);
   }
 
-  // NSF need to Check the array is valid
-  //if ( _sdconfig_.zonecfg[zone] == NULL) {
-  //  return false;
-  //}
-
   if (state == zcON) {
-    for (i=1; i <= _sdconfig_.zones ; i++)
-    {
-      if ( _sdconfig_.zonecfg[i].on_state == digitalRead (_sdconfig_.zonecfg[i].pin)) {
-        if (zone == i) {
-          logMessage (LOG_DEBUG, "Request to turn zone %d on. Zone %d is already on, ignoring!\n",zone,zone);
-          return false;
+    if ( length > 0) {
+      for (i=1; i <= _sdconfig_.zones ; i++)
+      {
+        if ( _sdconfig_.zonecfg[i].on_state == digitalRead (_sdconfig_.zonecfg[i].pin)) {
+          if (zone == i) {
+            logMessage (LOG_DEBUG, "Request to turn zone %d on. Zone %d is already on, ignoring!\n",zone,zone);
+            return false;
+          }
+          zc_stop(i);
         }
-        zc_stop(i);
       }
-    } 
-    zc_start(zone);
-    zc_master(zcON);
-    _sdconfig_.currentZone.type=type;
-    _sdconfig_.currentZone.zone=zone;
-    _sdconfig_.currentZone.duration=length;
-  logMessage (LOG_DEBUG, "set runtime to %d and %d\n",length,_sdconfig_.currentZone.duration);
-    time(&_sdconfig_.currentZone.started_time);
-    calc_timeleft();
-    return true;
+      zc_start(zone);
+      zc_master(zcON);
+      _sdconfig_.currentZone.type=type;
+      _sdconfig_.currentZone.zone=zone;
+      _sdconfig_.currentZone.duration=length;
+      logMessage (LOG_DEBUG, "set runtime to %d and %d\n",length,_sdconfig_.currentZone.duration);
+      time(&_sdconfig_.currentZone.started_time);
+      calc_timeleft();
+      return true;
+    } else {
+      logMessage (LOG_WARNING, "Request to turn zone %d on. Ignored due to runtime being %d\n",zone,length);
+      return false;
+    }
   } else if (state == zcOFF) {
     if (_sdconfig_.currentZone.type == zcALL) { // If all zones, and told to turn off current, run next zone
       _sdconfig_.currentZone.started_time = _sdconfig_.currentZone.started_time - (_sdconfig_.currentZone.duration * SEC2MIN) - 1;

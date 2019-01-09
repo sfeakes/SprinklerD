@@ -65,8 +65,15 @@
   #define	PI_MODEL_ZERO		  9
   #define	PI_MODEL_CM3		  10
   #define	PI_MODEL_ZERO_W		12
+  #define PI_MODEL_3P       13
+
 #endif
 
+// check number is between 2 and 27
+#define GPIO_MIN 2
+#define GPIO_MAX 27
+
+#define validGPIO(X)  ((X) <= (GPIO_MAX) ? ( ((X) >= (GPIO_MIN) ? (1) : (0)) ) : (0))
 
 
 //#ifndef SYSFS_MODE

@@ -200,6 +200,8 @@ http://sprinklerd.ip.address:port?type=option&option=24hdelay&state=off
 *  // Run options
 <host>?type=option&option=allz&state=on        // Run all zones default times (ignore 24h delay & calendar settings)
 <host>?type=zone&zone=2&state=on&runtime=3     // Run zone 2 for 3 mins (ignore 24h delay & calendar settings)
+<host>?type=zone&zone=2&state=off              // Turn off zone 2
+<host>?type=zone&zone=2&state=flip             // Flip state of zone 2, Turn off if on, Turn on if off 
 <host>?type=zrtcfg&zone=2&time=10              // change zone 2 default runtime to 10
 <host>?type=cron&zone=1&runtime=12&state=on'   // Run zone 1 for 12 mins (calendar & 24hdelay settings overide this request)
 
