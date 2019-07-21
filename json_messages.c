@@ -39,7 +39,7 @@ int build_sprinkler_cal_JSON(char* buffer, int size)
   for (day=0; day <= 6; day++) {
     if (_sdconfig_.cron[day].hour >= 0 && _sdconfig_.cron[day].minute >= 0) {
       length += sprintf(buffer+length, ", \"d%d-starttime\" : \"%.2d:%.2d\" ",day,_sdconfig_.cron[day].hour,_sdconfig_.cron[day].minute);
-      for (zone=0; zone < _sdconfig_.zones; zone ++) {
+      for (zone=1; zone < _sdconfig_.zones; zone ++) {
         if (_sdconfig_.cron[day].zruntimes[zone] >= 0) {
           length += sprintf(buffer+length, ", \"d%dz%d-runtime\" : %d",day,zone+1,_sdconfig_.cron[day].zruntimes[zone]);
           //logMessage(LOG_DEBUG, "Zone %d, length %d limit %d\n",zone,length,size);
@@ -105,6 +105,7 @@ int build_advanced_sprinkler_JSON(char* buffer, int size)
   int i, day;
   memset(&buffer[0], 0, size);
   int length = 0;
+  bool cal = false;
 /*
   length += sprintf(buffer+length,  "{ \"title\" : \"%s\",\"calendar\" : \"%s\", \"24hdelay\" : \"%s\", \"allz\" : \"%s\", \"#zones\" : %d, \"24hdelay-offtime\" : %li", 
                                     _sdconfig_.name, 
@@ -146,8 +147,9 @@ int build_advanced_sprinkler_JSON(char* buffer, int size)
 
   for (day=0; day <= 6; day++) {
     if (_sdconfig_.cron[day].hour >= 0 && _sdconfig_.cron[day].minute >= 0) {
+      cal = true;
       length += sprintf(buffer+length, "\"day %d\" : { \"start time\" : \"%.2d:%.2d\", ",day,_sdconfig_.cron[day].hour,_sdconfig_.cron[day].minute);
-      for (i=0; i < _sdconfig_.zones; i ++) {
+      for (i=1; i < _sdconfig_.zones; i ++) {
         if (_sdconfig_.cron[day].zruntimes[i] >= 0) {
           length += sprintf(buffer+length, "\"Zone %d\" : %d,",i+1,_sdconfig_.cron[day].zruntimes[i]);
           //logMessage(LOG_DEBUG, "Zone %d, length %d limit %d\n",i+1,length,size);
@@ -157,8 +159,11 @@ int build_advanced_sprinkler_JSON(char* buffer, int size)
       length += sprintf(buffer+length,  "},");
     }
   }
-  length -= 1;
+  if (cal) {
+    length -= 1;
+  }
   length += sprintf(buffer+length, "}}");
+  
 
   buffer[length] = '\0';
   return strlen(buffer);

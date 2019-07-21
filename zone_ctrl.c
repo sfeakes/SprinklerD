@@ -42,8 +42,9 @@ int start_next_zone(int startz) {
 
   int zone = startz+1;
 
-  while( _sdconfig_.zonecfg[zone].default_runtime <= 0  ) {
-    logMessage (LOG_INFO, "Run Zone, skipping zone %d due to runtime of %d\n",zone,_sdconfig_.zonecfg[zone].default_runtime);
+  while( _sdconfig_.zonecfg[zone].default_runtime <= 0 || !validGPIO( _sdconfig_.zonecfg[zone].pin) ) {
+    //logMessage (LOG_INFO, "Run Zone, skipping zone %d due to runtime of %d\n",zone,_sdconfig_.zonecfg[zone].default_runtime);
+    logMessage (LOG_INFO, "Run Zone, skipping zone %d due to %s\n",zone,_sdconfig_.zonecfg[zone].default_runtime<=0?" runtime of 0":" bad GPIO pin#");
     zone++;
     if (zone > _sdconfig_.zones) { // No more zones left to run, turn everything off
       _sdconfig_.currentZone.type=zcNONE;
@@ -54,12 +55,17 @@ int start_next_zone(int startz) {
     }
   }
 
-  _sdconfig_.currentZone.zone=zone;
-  zc_start(_sdconfig_.currentZone.zone);
-  zc_master(zcON);
-  time(&_sdconfig_.currentZone.started_time);
-  _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime;
-  calc_timeleft();
+  if ( zc_start(zone) == true) {
+    _sdconfig_.currentZone.zone=zone;
+    zc_master(zcON);
+    time(&_sdconfig_.currentZone.started_time);
+    _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[_sdconfig_.currentZone.zone].default_runtime;
+    calc_timeleft();
+    
+  } else {
+    logMessage (LOG_ERR, "Run Zone, failed to start zone %d, check GPIO\n",zone);
+    return start_next_zone(zone);
+  }
 
   return zone;
 }
@@ -178,15 +184,19 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
           zc_stop(i);
         }
       }
-      zc_start(zone);
-      zc_master(zcON);
-      _sdconfig_.currentZone.type=type;
-      _sdconfig_.currentZone.zone=zone;
-      _sdconfig_.currentZone.duration=length;
-      logMessage (LOG_DEBUG, "set runtime to %d and %d\n",length,_sdconfig_.currentZone.duration);
-      time(&_sdconfig_.currentZone.started_time);
-      calc_timeleft();
-      return true;
+      if ( zc_start(zone) == true) {
+        zc_master(zcON);
+        _sdconfig_.currentZone.type=type;
+        _sdconfig_.currentZone.zone=zone;
+        _sdconfig_.currentZone.duration=length;
+        logMessage (LOG_DEBUG, "set runtime to %d and %d\n",length,_sdconfig_.currentZone.duration);
+        time(&_sdconfig_.currentZone.started_time);
+        calc_timeleft();
+        return true;
+      } else {
+        logMessage (LOG_ERR, "Request to turn on zone %d failed, check GPIO\n",zone);
+        return false;
+      }
     } else {
       logMessage (LOG_WARNING, "Request to turn zone %d on. Ignored due to runtime being %d\n",zone,length);
       return false;
@@ -206,38 +216,45 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
 
   return false;
 }
+
 bool zc_start(/*zcRunType type,*/ int zone) {
-  // check anything on, turn off
-  
-  // Turn on master valve if we have one
-  // turn on zone
+  // Check if zone is already on
   if ( _sdconfig_.zonecfg[zone].on_state == digitalRead (_sdconfig_.zonecfg[zone].pin)) {
     logMessage (LOG_DEBUG, "Request to turn zone %d on. Zone %d is already on, ignoring!\n",zone,zone);
     return false;
   }
   logMessage (LOG_NOTICE, "Turning on Zone %d\n",zone);
+#ifndef USE_WIRINGPI
+  int rtn = digitalWrite(_sdconfig_.zonecfg[zone].pin, _sdconfig_.zonecfg[zone].on_state );
+#else
   digitalWrite(_sdconfig_.zonecfg[zone].pin, _sdconfig_.zonecfg[zone].on_state );
+  int rtn = true;
+#endif
   _sdconfig_.eventToUpdateHappened = true;
   // store what's running 
-
-  return true;
+  if (rtn == true)
+    return true;
+  else
+    return false;
 }
 
 bool zc_stop(/*zcRunType type,*/ int zone) {
-
-  // Turn on master valve if we have one
-
+  // Check if zone is alreay off
   if ( _sdconfig_.zonecfg[zone].on_state != digitalRead (_sdconfig_.zonecfg[zone].pin)) {
     logMessage (LOG_DEBUG, "Request to turn zone %d off. Zone %d is already off, ignoring!\n",zone,zone);
     return false;
   }
   logMessage (LOG_NOTICE, "Turning off Zone %d\n",zone);
+#ifndef USE_WIRINGPI
+  int rtn = digitalWrite(_sdconfig_.zonecfg[zone].pin, !_sdconfig_.zonecfg[zone].on_state );
+#else
   digitalWrite(_sdconfig_.zonecfg[zone].pin, !_sdconfig_.zonecfg[zone].on_state );
+  int rtn = true;
+#endif
   _sdconfig_.eventToUpdateHappened = true;
-  //_sdconfig_.zonecfg[zone]
-  // turn off zone
 
-  // delete what's running
-
-  return true;
+  if (rtn == true)
+    return true;
+  else
+    return false;
 }

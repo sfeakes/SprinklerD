@@ -197,8 +197,6 @@ void publish_zone_mqtt(struct mg_connection *nc, struct GPIOcfg *gpiopin) {
   static char mqtt_topic[250];
   static char mqtt_msg[50];
 
-printf("PUBLISH pin %d\n",gpiopin->pin);
-
   if (_sdconfig_.enableMQTTaq == true) {
     // sprintf(mqtt_topic, "%s/%s", _sdconfig_.mqtt_topic, gpiopin->name);
     sprintf(mqtt_topic, "%s/zone%d", _sdconfig_.mqtt_topic, gpiopin->zone);

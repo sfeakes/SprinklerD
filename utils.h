@@ -16,7 +16,7 @@ void daemonise ( char *pidFile, void (*main_function)(void) );
 void displayLastSystemError (const char *on_what);
 void logMessage(int level, char *format, ...);
 int count_characters(const char *str, char character);
-void run_external(char *command, int state);
+void run_external(char *command);
 int str2int(const char* str, int len);
 float str2float(const char* str, int len);
 //void readCfg (char *cfgFile);

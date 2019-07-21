@@ -301,13 +301,11 @@ char * replace(char const * const original, char const * const pattern, char con
   }
 }
 
-void run_external(char *command, int state)
+void run_external(char *command)
 {
 
-  char *cmd = replace(command, "%STATE%", (state==1?"1":"0"));
-  system(cmd);
-  logMessage (LOG_DEBUG, "Ran command '%s'\n", cmd);
-  free(cmd);
+  system(command);
+  logMessage (LOG_DEBUG, "Ran command '%s'\n", command);
     
   return;
 }

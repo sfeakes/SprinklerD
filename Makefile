@@ -27,7 +27,6 @@ CFLAGS = $(GCCFLAGS) -I. -I./minIni $(DBG) $(LIBS) -D MG_DISABLE_MD5 -D MG_DISAB
 
 # define the C source files
 SRCS = sprinkler.c utils.c config.c net_services.c json_messages.c zone_ctrl.c sd_cron.c mongoose.c minIni/minIni.c $(sd_GPIO_C)
-TSRC = test.c config.c utils.c minIni/minIni.c
 
 # define the C object files 
 #
@@ -38,11 +37,11 @@ TSRC = test.c config.c utils.c minIni/minIni.c
 # with the .o suffix
 #
 OBJS = $(SRCS:.c=.o)
-TOBJ = $(TSRC:.c=.o)
 
 # define the executable file 
 MAIN = ./release/sprinklerd
-TEST = ./release/testing
+GMON = ./release/gpio_monitor
+GPIO = ./release/gpio
 
 #
 # The following part of the makefile is generic; it can be used to 
@@ -58,11 +57,9 @@ all:    $(MAIN)
 $(MAIN): $(OBJS) 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS)
 
-test:    $(TEST)
-  @echo: $(TEST) have been compiled
-
-$(TEST): $(TOBJ)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $(TEST) $(TOBJ) $(LFLAGS) $(LIBS)
+gpio_tools:
+	$(CC) -o $(GMON) sd_GPIO.c -lm -lpthread -D GPIO_MONITOR
+	$(CC) -o $(GPIO) sd_GPIO.c -lm -lpthread -D GPIO_RW
   
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of

@@ -153,9 +153,10 @@ void write_cron() {
       //length += sprintf(buffer+length, ", \"d%d-starttime\" : \"%.2d:%.2d\" ",day,_sdconfig_.cron[day].hour,_sdconfig_.cron[day].minute);
       min = _sdconfig_.cron[day].minute;
       hour = _sdconfig_.cron[day].hour;
-      for (zone=0; zone < _sdconfig_.zones; zone ++) {
+      for (zone=1; zone < _sdconfig_.zones; zone ++) {
         if (_sdconfig_.cron[day].zruntimes[zone] > 0) {
-          fprintf(fp, "%d %d * * %d root /usr/bin/curl -s -o /dev/null 'localhost?type=cron&zone=%d&runtime=%d&state=on'\n",min,hour,day,zone+1,_sdconfig_.cron[day].zruntimes[zone]);
+          fprintf(fp, "%d %d * * %d root /usr/bin/curl -s -o /dev/null 'localhost:%s?type=cron&zone=%d&runtime=%d&state=on'\n",min,hour,day,_sdconfig_.socket_port,zone+1,_sdconfig_.cron[day].zruntimes[zone]);
+          //fprintf(fp, "%d %d * * %d root /usr/bin/curl -s -o /dev/null 'localhost?type=cron&zone=%d&runtime=%d&state=on'\n",min,hour,day,zone+1,_sdconfig_.cron[day].zruntimes[zone]);
           min = min + _sdconfig_.cron[day].zruntimes[zone];
           // NSF Check if to incrument hour.
           if (min >= 60) {
@@ -170,8 +171,8 @@ void write_cron() {
       }
     }
   }
-  fprintf(fp, "0 0 * * * root /usr/bin/curl -s -o /dev/null 'localhost?type=sensor&sensor=chanceofrain&value=0'\n");
-  fprintf(fp, "0 0 * * * root /usr/bin/curl -s -o /dev/null 'localhost?type=sensor&sensor=raintotal&value=0'\n");
+  fprintf(fp, "0 0 * * * root /usr/bin/curl -s -o /dev/null 'localhost:%s?type=sensor&sensor=chanceofrain&value=0'\n",_sdconfig_.socket_port);
+  fprintf(fp, "0 0 * * * root /usr/bin/curl -s -o /dev/null 'localhost:%s?type=sensor&sensor=raintotal&value=0'\n",_sdconfig_.socket_port);
   fprintf(fp, "#***** AUTO GENERATED DO NOT EDIT *****\n");
   fclose(fp);
 
@@ -204,7 +205,7 @@ void read_cron() {
   for (day=0; day <= 6; day++) {
     _sdconfig_.cron[day].hour = -1;
     _sdconfig_.cron[day].minute = -1;
-    for (zone=0; zone < _sdconfig_.zones; zone ++) {
+    for (zone=1; zone < _sdconfig_.zones; zone ++) {
       _sdconfig_.cron[day].zruntimes[zone] = 0;
     }
   }

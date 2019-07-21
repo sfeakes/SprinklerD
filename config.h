@@ -46,6 +46,8 @@ struct GPIOcfg {
   //int ignore_requests;
   int zone;
   int default_runtime;
+  char *command_on;
+  char *command_off;
   //bool master_valve;
   //struct GPIOextra *extra;
 };
@@ -74,6 +76,7 @@ struct sprinklerdcfg {
   bool enableMQTTdz;
   bool enableMQTTaq;
   int zones;
+  int inputs;
   //int pincfgs;
   bool calendar;
   bool delay24h;
@@ -84,6 +87,7 @@ struct sprinklerdcfg {
   float precipInchDelay2day;
   struct DZcache *dz_cache;
   struct GPIOcfg *zonecfg;
+  struct GPIOcfg *inputcfg;
   //struct GPIOcfg *gpiocfg;
   struct CALENDARday cron[7];
   //time_t cron_update;

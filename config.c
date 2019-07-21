@@ -9,10 +9,11 @@
   #include <wiringPi.h>
   #define PIN_CFG_NAME "WPI_PIN"
 #else
-  #include "sd_GPIO.h"
+  //#include "sd_GPIO.h"
   #define PIN_CFG_NAME "GPIO_PIN"
 #endif
 
+#include "sd_GPIO.h"
 #include "minIni.h"
 #include "utils.h"
 #include "config.h"
@@ -308,13 +309,13 @@ void readCfg(char *inifile)
         _sdconfig_.zonecfg[i].default_runtime = ini_getl(str, "DEFAULT_RUNTIME", 10, inifile);
         //ini_gets(str, "NAME", NULL, _sdconfig_.zonecfg[idx].name, sizearray(_sdconfig_.zonecfg[idx].name), inifile);
 	      ini_gets(str, "NAME", NULL, _sdconfig_.zonecfg[i].name, sizearray(_sdconfig_.zonecfg[i].name), inifile);
-#ifndef USE_WIRINGPI
+//#ifndef USE_WIRINGPI
         if ( ! validGPIO(pin) ) {
-          logMessage (LOG_ERR, "GPIO %d is not valid, found in ZONE:%d of configuration file %s \n",pin, i, inifile);
-          pin = GPIO_MAX; // Set pin to MAX so we can continue to run if error is not fixed.
-          sprintf(_sdconfig_.zonecfg[i].name, "ERROR in cfg");
+          logMessage (LOG_ERR, "GPIO pin %d is not valid, found in ZONE:%d of configuration file %s \n",pin, i, inifile);
+          pin = -1;
+          sprintf(_sdconfig_.zonecfg[i].name, "ERROR");
         }
-#endif
+//#endif
         /*
          logMessage (LOG_DEBUG,"Zone Config        : %s\n%25s : %d\n%25s : %d\n%25s : %d\n%25s : %d\n%25s : %d\n",
               _sdconfig_.zonecfg[i].name,
@@ -354,6 +355,60 @@ void readCfg(char *inifile)
     logMessage (LOG_ERR," no config zones set\n");
     exit (EXIT_FAILURE);
   }
+
+  // Caculate how many inputs we have
+  for (i=1; i <= 24; i++) // 24 = Just some arbutary number (max GPIO without expansion board)
+  {
+    sprintf(str, "INPUT:%d", i);
+    pin = ini_getl(str, PIN_CFG_NAME, -1, inifile);
+    if (pin == -1)
+      break;
+    else
+      _sdconfig_.inputs = i;
+  }
+  
+  logMessage (LOG_DEBUG, "Found %d INPUTS\n", _sdconfig_.inputs);
+ 
+  if ( _sdconfig_.inputs != 0) {
+  //  n= _sdconfig_.zones+1;
+    _sdconfig_.inputcfg = malloc((_sdconfig_.inputs + 1) * sizeof(struct GPIOcfg));
+    for (i=0; i < _sdconfig_.inputs; i++)
+    {
+      sprintf(str, "INPUT:%d", i+1);
+      pin = ini_getl(str, PIN_CFG_NAME, -1, inifile);
+      if (! validGPIO(pin) ) {
+        logMessage (LOG_ERR, "GPIO pin %d is not valid, found in INPUT:%d of configuration file %s \n",pin, i+1, inifile);
+        continue;
+      }
+      logMessage (LOG_DEBUG, "INPUT = %d\n", i+1);
+
+      _sdconfig_.inputcfg[i].input_output = INPUT; // Zone is always input 
+      _sdconfig_.inputcfg[i].receive_mode = BOTH; // Zone always needs trigger on both (high or low)
+      _sdconfig_.inputcfg[i].zone = i+1;
+      _sdconfig_.inputcfg[i].pin = pin;
+      _sdconfig_.inputcfg[i].on_state = ini_getl(str, "GPIO_ON_STATE", NO, inifile);
+      //_sdconfig_.inputcfg[i].startup_state = !_sdconfig_.inputcfg[i].on_state;
+      //_sdconfig_.inputcfg[i].shutdown_state = !_sdconfig_.inputcfg[i].on_state;
+      
+      _sdconfig_.inputcfg[i].set_pull_updown = ini_getl(str, "GPIO_PULL_UPDN", -1, inifile);
+      _sdconfig_.inputcfg[i].dz_idx = ini_getl(str, "DOMOTICZ_IDX", -1, inifile); // Not used at the moment.
+      ini_gets(str, "NAME", NULL, _sdconfig_.inputcfg[i].name, sizearray(_sdconfig_.inputcfg[i].name), inifile);
+
+      _sdconfig_.inputcfg[i].command_on = malloc(COMMAND_SIZE * sizeof(char));
+      _sdconfig_.inputcfg[i].command_off = malloc(COMMAND_SIZE * sizeof(char));
+      ini_gets(str, "COMMAND_ON", NULL, _sdconfig_.inputcfg[i].command_on, COMMAND_SIZE, inifile);
+      ini_gets(str, "COMMAND_OFF", NULL, _sdconfig_.inputcfg[i].command_off, COMMAND_SIZE, inifile);
+
+      logMessage (LOG_DEBUG,"Input Config        : %s\n%25s : %d\n%25s : %d\n%25s : %d\n%25s : %d\n",
+              _sdconfig_.inputcfg[i].name,
+              "PIN",_sdconfig_.inputcfg[i].pin,
+              "Set pull up/down", _sdconfig_.inputcfg[i].set_pull_updown,
+              "ON state", _sdconfig_.inputcfg[i].on_state,
+              "Domoticz IDX", _sdconfig_.inputcfg[i].dz_idx);
+    }
+  }
+
+
 /*
   idx=0;
   pin=-1;

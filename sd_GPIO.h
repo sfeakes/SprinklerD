@@ -11,6 +11,19 @@
 #include <syslog.h>
 #include <stdbool.h>
 
+// check number is between 2 and 27
+#ifndef USE_WIRINGPI
+#define GPIO_MIN 2
+#define GPIO_MAX 27
+#else // WiringPI valid numbers
+#define GPIO_MIN 0
+#define GPIO_MAX 30
+#endif
+
+#define validGPIO(X)  ((X) <= (GPIO_MAX) ? ( ((X) >= (GPIO_MIN) ? (1) : (0)) ) : (0))
+
+#ifndef USE_WIRINGPI // Don't include anything below this line if using wiringpi.
+
 #define INPUT  0
 #define OUTPUT 1
  
@@ -69,13 +82,6 @@
 
 #endif
 
-// check number is between 2 and 27
-#define GPIO_MIN 2
-#define GPIO_MAX 27
-
-#define validGPIO(X)  ((X) <= (GPIO_MAX) ? ( ((X) >= (GPIO_MIN) ? (1) : (0)) ) : (0))
-
-
 //#ifndef SYSFS_MODE
 bool pinExport(unsigned pin);
 bool pinUnexport(unsigned pin);
@@ -98,4 +104,5 @@ bool digitalWrite (int pin, int value);
 #endif
 */
 
+#endif /* WiringPI */
 #endif /* _SD_GPIO_H_ */

@@ -161,6 +161,9 @@ bool gpioSetup() {
 int pinMode(unsigned gpio, unsigned mode) {
   int reg, shift;
 
+  if (! validGPIO(gpio))
+    return -1;
+
   reg = gpio / 10;
   shift = (gpio % 10) * 3;
 
@@ -172,6 +175,9 @@ int pinMode(unsigned gpio, unsigned mode) {
 int getPinMode(unsigned gpio) {
   int reg, shift;
 
+  if (! validGPIO(gpio))
+    return -1;
+
   reg = gpio / 10;
   shift = (gpio % 10) * 3;
 
@@ -180,6 +186,9 @@ int getPinMode(unsigned gpio) {
 
 int digitalRead(unsigned gpio) {
   unsigned bank, bit;
+
+  if (! validGPIO(gpio))
+    return -1;
 
   bank = gpio >> 5;
 
@@ -194,6 +203,9 @@ int digitalRead(unsigned gpio) {
 int digitalWrite(unsigned gpio, unsigned level) {
   unsigned bank, bit;
 
+  if (! validGPIO(gpio))
+    return -1;
+
   bank = gpio >> 5;
 
   bit = (1 << (gpio & 0x1F));
@@ -203,12 +215,15 @@ int digitalWrite(unsigned gpio, unsigned level) {
   else
     *(_gpioReg + GPSET0 + bank) = bit;
 
-  return 0;
+  return true;
 }
 
 int setPullUpDown(unsigned gpio, unsigned pud)
 {
 	unsigned bank, bit;
+
+  if (! validGPIO(gpio))
+    return -1;
 
   bank = gpio >> 5;
 
@@ -239,6 +254,9 @@ bool gpioSetup() {return true;}
 int pinMode (unsigned pin, unsigned mode)
 {
 	//static const char s_directions_str[]  = "in\0out\0";
+
+  if (! validGPIO(pin))
+    return -1;
 
 	char path[SYSFS_PATH_MAX];
 	int fd;
@@ -274,6 +292,9 @@ int getPinMode(unsigned gpio) {
 	char value_str[SYSFS_READ_MAX];
 	int fd;
 
+  if (! validGPIO(gpio))
+    return -1;
+
   snprintf(path, SYSFS_PATH_MAX, "/sys/class/gpio/gpio%d/direction", gpio);
 	fd = open(path, O_RDONLY);
 	if (-1 == fd) {
@@ -302,6 +323,9 @@ int digitalRead (unsigned pin)
 	char path[SYSFS_PATH_MAX];
 	char value_str[SYSFS_READ_MAX];
 	int fd;
+
+  if (! validGPIO(pin))
+    return -1;
  
 	snprintf(path, SYSFS_PATH_MAX, "/sys/class/gpio/gpio%d/value", pin);
 	fd = open(path, O_RDONLY);
@@ -329,6 +353,9 @@ int digitalWrite (unsigned pin, unsigned value)
  
 	char path[SYSFS_PATH_MAX];
 	int fd;
+
+  if (! validGPIO(pin))
+    return -1;
  
 	snprintf(path, SYSFS_PATH_MAX, "/sys/class/gpio/gpio%d/value", pin);
 	fd = open(path, O_WRONLY);
@@ -381,6 +408,9 @@ bool pinExport(unsigned pin)
 	ssize_t bytes_written;
 	int fd;
  
+  if (! validGPIO(pin))
+    return -1;
+
 	fd = open("/sys/class/gpio/export", O_WRONLY);
 	if (-1 == fd) {
 		//fprintf(stderr, "Failed to open export for writing!\n");
@@ -400,6 +430,9 @@ bool pinUnexport(unsigned pin)
 	ssize_t bytes_written;
 	int fd;
  
+  if (! validGPIO(pin))
+    return -1;
+
 	fd = open("/sys/class/gpio/unexport", O_WRONLY);
 	if (-1 == fd) {
 		//fprintf(stderr, "Failed to open unexport for writing!\n");
@@ -420,6 +453,9 @@ bool edgeSetup (unsigned pin, unsigned value)
 	char path[SYSFS_PATH_MAX];
 	int fd;
  
+  if (! validGPIO(pin))
+    return -1;
+
 	snprintf(path, SYSFS_PATH_MAX, "/sys/class/gpio/gpio%d/edge", pin);
 	fd = open(path, O_WRONLY);
 	if (-1 == fd) {
@@ -485,7 +521,7 @@ void gpioShutdown() {
 
 	for (i=0; i< MAX_FDS; i++) {
 		if (_sysFds[i] != -1) {
-			printf("Closing fd\n");
+			//printf("Closing fd %d\n",i);
       close(_sysFds[i]);
 			_sysFds[i] = -1;
 		} else {
@@ -567,6 +603,10 @@ bool registerGPIOinterrupt(int pin, int mode, void (*function)(void *args), void
 {
   pthread_t threadId ;
 	struct threadGPIOinterupt stuff;
+
+  if (! validGPIO(pin))
+    return false;
+
 	// Check it's exported
 	if (! isExported(pin))
 	  pinExport(pin);
@@ -598,32 +638,22 @@ bool registerGPIOinterrupt(int pin, int mode, void (*function)(void *args), void
 }
 
 
-//#define TEST_HARNESS
-
-#ifdef TEST_HARNESS
-
-#define GPIO_OFF   0x00005000  /* Offset from IO_START to the GPIO reg's. */
-
-/* IO_START and IO_BASE are defined in hardware.h */
-
-#define GPIO_START (IO_START_2 + GPIO_OFF) /* Physical addr of the GPIO reg. */
-#define GPIO_BASE_NEW  (IO_BASE_2  + GPIO_OFF) /* Virtual addr of the GPIO reg. */
+#if defined(TEST_HARNESS) || defined(GPIO_MONITOR) || defined(GPIO_RW)
 
 #include <stdarg.h>
 #include <errno.h>
+#include <signal.h>
+#include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <time.h>
 
-void *myCallBack(void * args) {
-  printf("Ping\n");
-	//struct threadGPIOinterupt *stuff = (struct threadGPIOinterupt *) args;
-	//printf("Pin is %d\n",stuff->pin);
-}
+int _log_level = LOG_DEBUG;
 
 void logMessage(int level, char *format, ...)
 {
-  //if (_debuglog_ == false && level == LOG_DEBUG)
-  //  return;
+  if (level > _log_level)
+    return;
   
   char buffer[256];
   va_list args;
@@ -645,9 +675,134 @@ void displayLastSystemError (const char *on_what)
 
 }
 
+#endif //TEST_HARNESS || GPIO_MONITOR
+
+#ifdef GPIO_RW
+
+void errorParms()
+{
+  printf("Missing Parameters:-\n\t[read|write] pin <value>\n\tgpio write 17 1\n");
+  exit(1);
+}
+int main(int argc, char *argv[]) {
+
+  bool isWrite=false;
+  int pin = 0;
+  int value = 0;
+
+  _log_level = LOG_ERR;
+
+  if (argc < 3) {
+    errorParms();
+  }
+
+  if (strcmp (argv[1], "read") == 0)
+  {
+    isWrite = false;
+  } else if (strcmp (argv[1], "write") == 0) {
+    isWrite = true;
+    if (argc < 4)
+      errorParms();
+  } else {
+    errorParms();
+  }
+
+  pin = atoi(argv[2]);
+  
+  if (! gpioSetup()) {
+    logMessage (LOG_ERR, "Failed to setup GPIO\n");
+    return 1;
+  }
+
+  if (isWrite) {
+    value = atoi(argv[3]);
+    int pmode = getPinMode(pin);
+    pinMode (pin, OUTPUT);
+    digitalWrite(pin, value);
+    //if (pmode != OUTPUT)
+    //  pinMode (pin, pmode);
+  }
+  
+  printf ("%d\n", digitalRead(pin));
+  
+
+  return 0;
+}
+#endif
+
+#ifdef GPIO_MONITOR
+
+bool FOREVER = true;
+
+void intHandler(int signum) {
+  static int called=0;
+  logMessage (LOG_INFO, "Stopping! - signel(%d)\n",signum);
+  gpioShutdown();
+  FOREVER = false;
+  called++;
+  if (called > 3)
+    exit(1);
+}
+
+void event_trigger (int pin)
+{
+  printf("Pin %d triggered, state=%d\n",pin,digitalRead(pin));
+}
+
+int main(int argc, char *argv[]) {
+
+  int i;
+
+  if (! gpioSetup()) {
+    logMessage (LOG_ERR, "Failed to setup GPIO\n");
+    return 1;
+  }
+
+  signal(SIGINT, intHandler);
+  signal(SIGTERM, intHandler);
+  signal(SIGSEGV, intHandler);
+
+  for (i=GPIO_MIN; i <= GPIO_MAX; i++) {
+    printf ("Pin %d is %d\n", i, digitalRead(i));
+    if (registerGPIOinterrupt (i, INT_EDGE_BOTH, (void *)&event_trigger, (void *)i) != true)
+    {
+      displayLastSystemError ("Unable to set interrupt handler for specified pin, exiting");
+      gpioShutdown();
+      return 1;
+    }
+  }
+
+  while(FOREVER) {
+    sleep(10);
+  }
+
+  return 0;
+}
+
+#endif //GPIO_MONITOR
+
+//#define TEST_HARNESS
+
+#ifdef TEST_HARNESS
+
+#define GPIO_OFF   0x00005000  /* Offset from IO_START to the GPIO reg's. */
+
+/* IO_START and IO_BASE are defined in hardware.h */
+
+#define GPIO_START (IO_START_2 + GPIO_OFF) /* Physical addr of the GPIO reg. */
+#define GPIO_BASE_NEW  (IO_BASE_2  + GPIO_OFF) /* Virtual addr of the GPIO reg. */
+
+
+void *myCallBack(void * args) {
+  printf("Ping\n");
+	//struct threadGPIOinterupt *stuff = (struct threadGPIOinterupt *) args;
+	//printf("Pin is %d\n",stuff->pin);
+}
+
 #define PIN  17
 #define POUT  27
 int main(int argc, char *argv[]) {
+
   int repeat = 3;
 
   // if (-1 == GPIOExport(POUT) || -1 == GPIOExport(PIN))
