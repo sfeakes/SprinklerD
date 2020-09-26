@@ -4,7 +4,7 @@ CC = gcc
 #USE_WIRINGPI := 1
 
 ifeq ($(USE_WIRINGPI),)
-  sd_GPIO_C := sd_GPIO.c
+  sd_GPIO_C := GPIO_Pi.c
 else
   #WPI_LIB := -D USE_WIRINGPI -lwiringPi -lwiringPiDev
   WPI_LIB := -D USE_WIRINGPI -lwiringPi
@@ -58,8 +58,8 @@ $(MAIN): $(OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS)
 
 gpio_tools:
-	$(CC) -o $(GMON) sd_GPIO.c -lm -lpthread -D GPIO_MONITOR
-	$(CC) -o $(GPIO) sd_GPIO.c -lm -lpthread -D GPIO_RW
+	$(CC) -o $(GMON) GPIO_Pi.c -lm -lpthread -D GPIO_MONITOR
+	$(CC) -o $(GPIO) GPIO_Pi.c -lm -lpthread -D GPIO_TOOL
   
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of

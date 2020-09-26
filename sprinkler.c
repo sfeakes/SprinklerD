@@ -14,7 +14,7 @@
 //  #include "sd_GPIO.h"
 #endif
 
-#include "sd_GPIO.h"
+#include "GPIO_Pi.h"
 
 #include "mongoose.h"
 
@@ -252,6 +252,10 @@ void main_loop ()
   logMessage(LOG_DEBUG, "Setting up GPIO\n");
 
   gpioSetup();
+  if (! gpioSetup()) {
+    logMessage(LOG_ERR, "Failed to setup GPIO\n");
+    exit (EXIT_FAILURE);
+  }
 
   for (i=(_sdconfig_.master_valve?0:1); i <= _sdconfig_.zones ; i++)
   {

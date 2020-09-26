@@ -13,7 +13,7 @@
   #define PIN_CFG_NAME "GPIO_PIN"
 #endif
 
-#include "sd_GPIO.h"
+#include "GPIO_Pi.h"
 #include "minIni.h"
 #include "utils.h"
 #include "config.h"

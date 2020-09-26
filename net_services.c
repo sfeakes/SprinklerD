@@ -9,7 +9,7 @@
 #ifdef USE_WIRINGPI
   #include <wiringPi.h>
 #else
-  #include "sd_GPIO.h"
+  #include "GPIO_Pi.h"
 #endif
 
 #include "mongoose.h"

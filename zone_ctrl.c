@@ -1,7 +1,7 @@
 #ifdef USE_WIRINGPI
   #include <wiringPi.h>
 #else
-  #include "sd_GPIO.h"
+  #include "GPIO_Pi.h"
 #endif
 
 #include "zone_ctrl.h"
@@ -218,6 +218,7 @@ bool zc_zone(zcRunType type, int zone, zcState state, int length) {
 }
 
 bool zc_start(/*zcRunType type,*/ int zone) {
+  int rtn = false;
   // Check if zone is already on
   if ( _sdconfig_.zonecfg[zone].on_state == digitalRead (_sdconfig_.zonecfg[zone].pin)) {
     logMessage (LOG_DEBUG, "Request to turn zone %d on. Zone %d is already on, ignoring!\n",zone,zone);
@@ -225,20 +226,28 @@ bool zc_start(/*zcRunType type,*/ int zone) {
   }
   logMessage (LOG_NOTICE, "Turning on Zone %d\n",zone);
 #ifndef USE_WIRINGPI
-  int rtn = digitalWrite(_sdconfig_.zonecfg[zone].pin, _sdconfig_.zonecfg[zone].on_state );
+  //int rtn = digitalWrite(_sdconfig_.zonecfg[zone].pin, _sdconfig_.zonecfg[zone].on_state );
+  //logMessage (LOG_NOTICE, "digitalWrite return %d\n",rtn);
+  if (digitalWrite(_sdconfig_.zonecfg[zone].pin, _sdconfig_.zonecfg[zone].on_state ) == GPIO_OK )
+    rtn = true;
+  else
+    rtn = false;
 #else
   digitalWrite(_sdconfig_.zonecfg[zone].pin, _sdconfig_.zonecfg[zone].on_state );
   int rtn = true;
 #endif
   _sdconfig_.eventToUpdateHappened = true;
+
+  return rtn;
   // store what's running 
-  if (rtn == true)
-    return true;
-  else
-    return false;
+  //if (rtn == true)
+  //  return true;
+  //else
+  //  return false;
 }
 
 bool zc_stop(/*zcRunType type,*/ int zone) {
+  int rtn = false;
   // Check if zone is alreay off
   if ( _sdconfig_.zonecfg[zone].on_state != digitalRead (_sdconfig_.zonecfg[zone].pin)) {
     logMessage (LOG_DEBUG, "Request to turn zone %d off. Zone %d is already off, ignoring!\n",zone,zone);
@@ -246,15 +255,22 @@ bool zc_stop(/*zcRunType type,*/ int zone) {
   }
   logMessage (LOG_NOTICE, "Turning off Zone %d\n",zone);
 #ifndef USE_WIRINGPI
-  int rtn = digitalWrite(_sdconfig_.zonecfg[zone].pin, !_sdconfig_.zonecfg[zone].on_state );
+  //int rtn = digitalWrite(_sdconfig_.zonecfg[zone].pin, !_sdconfig_.zonecfg[zone].on_state );
+  if (digitalWrite(_sdconfig_.zonecfg[zone].pin, !_sdconfig_.zonecfg[zone].on_state ) == GPIO_OK )
+    rtn = true;
+  else
+    rtn = false;
 #else
   digitalWrite(_sdconfig_.zonecfg[zone].pin, !_sdconfig_.zonecfg[zone].on_state );
   int rtn = true;
 #endif
   _sdconfig_.eventToUpdateHappened = true;
 
+  return rtn;
+  /*
   if (rtn == true)
     return true;
   else
     return false;
+  */
 }
