@@ -8,7 +8,7 @@
 #  sprinklerdEnableDelay = the URL to SprinklerD
 #
 # The below are NOT valid, you MUST chaneg them to your information.
-openweatherAPI='a33dba074604386931efcdb849f67410'
+openweatherAPI='xxxxxxxxxxxxxxxxxxxxxxxxxx'
 lat='42.3601'
 lon='-71.0589'
 

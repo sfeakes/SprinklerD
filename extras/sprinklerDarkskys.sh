@@ -7,7 +7,7 @@
 #  sprinklerdEnableDelay = the URL to SprinklerD
 #
 # The below are NOT valid, you MUST chaneg them to your information.
-darkskyAPI='0123456789abcdef9876543210fedcba'
+darkskyAPI='xxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 location='42.3601,-71.0589'
 
 probabilityOver=1.0 # 1.0 means don't set delay from this script, use the SprinklerD config (webUI) to decide if to set delay
