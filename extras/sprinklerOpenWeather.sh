@@ -1,14 +1,16 @@
 #!/bin/bash
 #
-#  darkskyAPI            = your DarkSky API key below, it's free to get one 
-#  location              = your location lat,long
+#  openweatherAPI        = your Openweather API key below, it's free to get one 
+#  lat                   = your latitude
+#  lon                   = your longitude
 #  probabilityOver       = Enable rain delay if probability of rain today is grater than this number. 
 #                          Range is 0 to 1, so 0.5 is 50%
 #  sprinklerdEnableDelay = the URL to SprinklerD
 #
 # The below are NOT valid, you MUST chaneg them to your information.
-darkskyAPI='0123456789abcdef9876543210fedcba'
-location='42.3601,-71.0589'
+openweatherAPI='a33dba074604386931efcdb849f67410'
+lat='42.3601'
+lon='-71.0589'
 
 probabilityOver=1.0 # 1.0 means don't set delay from this script, use the SprinklerD config (webUI) to decide if to set delay
 
@@ -22,19 +24,19 @@ command -v curl >/dev/null 2>&1 || { echoerr "curl is not installed.  Aborting!"
 command -v jq >/dev/null 2>&1 || { echoerr "jq is not installed.  Aborting!"; exit 1; }
 command -v bc >/dev/null 2>&1 || { echoerr "bc not installed.  Aborting!"; exit 1; }
 
-darkskyJSON=$(curl -s "https://api.darksky.net/forecast/"$darkskyAPI"/"$location)
+openweatherJSON=$(curl -s "https://api.openweathermap.org/data/2.5/onecall?lat="$lat"&lon="$lon"&appid="$openweatherAPI"&exclude=current,minutely,hourly,alerts")
 
 if [ $? -ne 0 ]; then
-    echoerr "Error reading DarkSkys URL, please check!"
+    echoerr "Error reading OpenWeather URL, please check!"
     echoerr "Maybe you didn't configure your API and location?"
     exit 1;
 fi
 
-probability=$(echo $darkskyJSON | jq '.["daily"].data[0].precipProbability' )
+probability=$(echo $openweatherJSON | jq '.["daily"][0].pop' )
 
 #if [ $? -ne 0 ]; then
 if [ "$probability" == "null" ]; then
-    echoerr "Error reading DarkSkys JSON, please check!"
+    echoerr "Error reading OpenWeather JSON, please check!"
     exit 1;
 fi
 

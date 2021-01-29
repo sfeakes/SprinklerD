@@ -98,8 +98,11 @@ Script to check the chance of rain from darkskys forecast API, if it's greater t
 Simply edit the scrips with your values, and use cron to run it 30mins before your sprinkelrs are due to turn on each day. If the chance of rain is over your configured % it will enable SprinklerD's 24h rain delay, which will stop the sprinklers running that day, and the 24h delay will timeout before the sprinklers are due to run the next day. (or be enabeled again if the chance of rain is high)
 You can also use this script to simply sent the 'chance or rain today' to SprinklerD, and allow SprinklerD to make the decision if to enable rain delay, depending on options configured in the UI.
 
+[sprinklerOpenWeather.sh](https://github.com/sfeakes/sprinklerd/blob/master/extras/sprinklerOpenWeather.sh)
+Exactly the same as above (sprinklerDarkskys.sh) but uses OpenWeather forecast API.
+
 [sprinklerMeteohub.sh](https://github.com/sfeakes/sprinklerd/blob/master/extras/sprinklerMeteohub.sh)
-Script to pull daily rain total from Hereohub and send it to SprinklerD.  SprinklerD will then turn on rain dalys (14h or 48h) depending on rain threshold.
+Script to pull daily rain total from Meteohub and send it to SprinklerD.  SprinklerD will then turn on rain dalys (14h or 48h) depending on rain threshold.
 
 [sprinklerRainDelay.sh](https://github.com/sfeakes/sprinklerd/blob/master/extras/sprinklerRainDelay.sh)
 Script to enable extended rain delays. i.e. I have my weatherstation triger this script when it detects rain. The script will cancel any running zones and enable a rain delay.  You can use a number on command line parameter to enable long delays, (number represents number of days).  So if my rainsensor logs over 5mm rain in any 24h period it will call this script with a 2 day delay, or 3 day delay if over 15mm of rain. 
