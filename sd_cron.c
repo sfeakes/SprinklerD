@@ -153,7 +153,7 @@ void write_cron() {
       //length += sprintf(buffer+length, ", \"d%d-starttime\" : \"%.2d:%.2d\" ",day,_sdconfig_.cron[day].hour,_sdconfig_.cron[day].minute);
       min = _sdconfig_.cron[day].minute;
       hour = _sdconfig_.cron[day].hour;
-      for (zone=1; zone < _sdconfig_.zones; zone ++) {
+      for (zone=0; zone < _sdconfig_.zones; zone ++) {
         if (_sdconfig_.cron[day].zruntimes[zone] > 0) {
           fprintf(fp, "%d %d * * %d root /usr/bin/curl -s -o /dev/null 'localhost:%s?type=cron&zone=%d&runtime=%d&state=on'\n",min,hour,day,_sdconfig_.socket_port,zone+1,_sdconfig_.cron[day].zruntimes[zone]);
           //fprintf(fp, "%d %d * * %d root /usr/bin/curl -s -o /dev/null 'localhost?type=cron&zone=%d&runtime=%d&state=on'\n",min,hour,day,zone+1,_sdconfig_.cron[day].zruntimes[zone]);

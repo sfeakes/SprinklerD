@@ -39,7 +39,7 @@ int build_sprinkler_cal_JSON(char* buffer, int size)
   for (day=0; day <= 6; day++) {
     if (_sdconfig_.cron[day].hour >= 0 && _sdconfig_.cron[day].minute >= 0) {
       length += sprintf(buffer+length, ", \"d%d-starttime\" : \"%.2d:%.2d\" ",day,_sdconfig_.cron[day].hour,_sdconfig_.cron[day].minute);
-      for (zone=1; zone < _sdconfig_.zones; zone ++) {
+      for (zone=0; zone < _sdconfig_.zones; zone ++) {
         if (_sdconfig_.cron[day].zruntimes[zone] >= 0) {
           length += sprintf(buffer+length, ", \"d%dz%d-runtime\" : %d",day,zone+1,_sdconfig_.cron[day].zruntimes[zone]);
           //logMessage(LOG_DEBUG, "Zone %d, length %d limit %d\n",zone,length,size);
