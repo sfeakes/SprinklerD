@@ -232,22 +232,34 @@ void readCfg(char *inifile)
   ini_gets("SPRINKLERD", "MQTT_ADDRESS", NULL, _sdconfig_.mqtt_address, sizearray(_sdconfig_.mqtt_address), inifile);
   ini_gets("SPRINKLERD", "MQTT_USER", NULL, _sdconfig_.mqtt_user, sizearray(_sdconfig_.mqtt_user), inifile);
   ini_gets("SPRINKLERD", "MQTT_PASSWD", NULL, _sdconfig_.mqtt_passwd, sizearray(_sdconfig_.mqtt_passwd), inifile);
-  
+
   if ( ini_gets("SPRINKLERD", "MQT_TOPIC", NULL, _sdconfig_.mqtt_topic, sizearray(_sdconfig_.mqtt_topic), inifile) > 0 )
     _sdconfig_.enableMQTTaq = true;
   else
     _sdconfig_.enableMQTTaq = false;
 
+  //if ( ini_gets("SPRINKLERD", "MQTT_HA_DIS_TOPIC", NULL, _sdconfig_.mqtt_ha_dis_topic, sizearray(_sdconfig_.mqtt_ha_dis_topic), inifile) > 0 )
   if ( ini_gets("SPRINKLERD", "MQTT_DZ_PUB_TOPIC", NULL, _sdconfig_.mqtt_dz_pub_topic, sizearray(_sdconfig_.mqtt_dz_pub_topic), inifile) > 0 &&
        ini_gets("SPRINKLERD", "MQTT_DZ_SUB_TOPIC", NULL, _sdconfig_.mqtt_dz_sub_topic, sizearray(_sdconfig_.mqtt_dz_sub_topic), inifile) > 0)
     _sdconfig_.enableMQTTdz = true;
   else
     _sdconfig_.enableMQTTdz = false;
 
-  if (_sdconfig_.enableMQTTdz == true || _sdconfig_.enableMQTTaq == true) {
+  if ( ini_gets("SPRINKLERD", "MQTT_HA_DIS_TOPIC", NULL, _sdconfig_.mqtt_ha_dis_topic, sizearray(_sdconfig_.mqtt_ha_dis_topic), inifile) > 0 )
+    _sdconfig_.enableMQTTha = true;
+  else
+    _sdconfig_.enableMQTTha = false;
+
+
+  if (_sdconfig_.enableMQTTaq == true ) {
     logMessage (LOG_DEBUG,"Config mqtt_topic '%s'\n",_sdconfig_.mqtt_topic);
-    logMessage (LOG_DEBUG,"Config mqtt_dz_pub_topic '%s'\n",_sdconfig_.mqtt_dz_pub_topic);
-    logMessage (LOG_DEBUG,"Config mqtt_dz_sub_topic '%s'\n",_sdconfig_.mqtt_dz_sub_topic);
+    if (_sdconfig_.enableMQTTdz == true) {
+      logMessage (LOG_DEBUG,"Config mqtt_dz_pub_topic '%s'\n",_sdconfig_.mqtt_dz_pub_topic);
+      logMessage (LOG_DEBUG,"Config mqtt_dz_sub_topic '%s'\n",_sdconfig_.mqtt_dz_sub_topic);
+    }
+    if (_sdconfig_.enableMQTTha == true) {
+      logMessage (LOG_DEBUG,"Config mqtt_ha_dis_topic '%s'\n",_sdconfig_.mqtt_ha_dis_topic);
+    }
   } else {
     logMessage (LOG_DEBUG,"Config mqtt 'disabeled'\n");
   }

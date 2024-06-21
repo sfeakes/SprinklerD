@@ -26,7 +26,7 @@ CFLAGS = $(GCCFLAGS) -I. -I./minIni $(DBG) $(LIBS) -D MG_DISABLE_MD5 -D MG_DISAB
 
 
 # define the C source files
-SRCS = sprinkler.c utils.c config.c net_services.c json_messages.c zone_ctrl.c sd_cron.c mongoose.c minIni/minIni.c $(sd_GPIO_C)
+SRCS = sprinkler.c utils.c config.c net_services.c json_messages.c zone_ctrl.c sd_cron.c hassio.c mongoose.c minIni/minIni.c $(sd_GPIO_C)
 
 # define the C object files 
 #

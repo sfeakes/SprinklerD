@@ -61,12 +61,13 @@ struct sprinklerdcfg {
   char socket_port[6];
   char name[20];
   char docroot[512];
-  char mqtt_address[20];
+  char mqtt_address[128];
   char mqtt_user[50];
   char mqtt_passwd[50];
   char mqtt_topic[50];
-  char mqtt_dz_sub_topic[50];
-  char mqtt_dz_pub_topic[50];
+  char mqtt_dz_sub_topic[128];
+  char mqtt_dz_pub_topic[128];
+  char mqtt_ha_dis_topic[128];
   char mqtt_ID[MQTT_ID_LEN];
   int dzidx_calendar;
   int dzidx_24hdelay;
@@ -75,6 +76,7 @@ struct sprinklerdcfg {
   int dzidx_rainsensor;
   bool enableMQTTdz;
   bool enableMQTTaq;
+  bool enableMQTTha;
   int zones;
   int inputs;
   //int pincfgs;

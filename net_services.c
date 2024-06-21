@@ -19,6 +19,7 @@
 #include "json_messages.h"
 #include "zone_ctrl.h"
 #include "sd_cron.h"
+#include "hassio.h"
 
 
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )
@@ -207,7 +208,7 @@ void publish_zone_mqtt(struct mg_connection *nc, struct GPIOcfg *gpiopin) {
     send_mqtt_msg(nc, mqtt_topic, mqtt_msg);
                                    
     sprintf(mqtt_topic, "%s/zone%d/remainingduration", _sdconfig_.mqtt_topic, gpiopin->zone);
-    if (_sdconfig_.currentZone.zone == gpiopin->zone) {  
+    if (_sdconfig_.currentZone.zone == gpiopin->zone && _sdconfig_.currentZone.type != zcNONE) {  
       sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft * 60);
     } else {
       sprintf(mqtt_msg, "%d", 0);
@@ -277,9 +278,16 @@ void broadcast_sprinklerdactivestate(struct mg_connection *nc)
 
   for (c = mg_next(nc->mgr, NULL); c != NULL; c = mg_next(nc->mgr, c)) {
     if (is_mqtt(c)) {
-      sprintf(mqtt_topic, "%s/active", _sdconfig_.mqtt_topic);
-      sprintf(mqtt_msg, "Zone %d", _sdconfig_.currentZone.zone );
-      send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      if (_sdconfig_.currentZone.type==zcNONE) {
+        sprintf(mqtt_topic, "%s/active", _sdconfig_.mqtt_topic);
+        send_mqtt_msg(c, mqtt_topic, " ");
+        sprintf(mqtt_topic, "%s/cycleallzones/remainingduration", _sdconfig_.mqtt_topic);
+        send_mqtt_msg(c, mqtt_topic, "0");
+      } else {
+        sprintf(mqtt_topic, "%s/active", _sdconfig_.mqtt_topic);
+        sprintf(mqtt_msg, "Zone %d", _sdconfig_.currentZone.zone );
+        send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      //}
       //sprintf(mqtt_topic, "%s/remainingduration", _sdconfig_.mqtt_topic);
       //sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft );
       //send_mqtt_msg(c, mqtt_topic, mqtt_msg);
@@ -290,6 +298,7 @@ void broadcast_sprinklerdactivestate(struct mg_connection *nc)
       sprintf(mqtt_topic, "%s/zone%d/remainingduration", _sdconfig_.mqtt_topic, _sdconfig_.currentZone.zone);
       sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft );
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      }
       if (_sdconfig_.currentZone.type == zcALL) {
         int i, total=_sdconfig_.currentZone.timeleft;
         for (i=_sdconfig_.currentZone.zone+1; i <= _sdconfig_.zones; i++) {
@@ -299,6 +308,8 @@ void broadcast_sprinklerdactivestate(struct mg_connection *nc)
         sprintf(mqtt_msg, "%d", total );
         send_mqtt_msg(c, mqtt_topic, mqtt_msg);
         sprintf(mqtt_topic, "%s/zone0/remainingduration", _sdconfig_.mqtt_topic);
+        //sprintf(mqtt_msg, "%d", _sdconfig_.currentZone.timeleft );
+        sprintf(mqtt_msg, "%d", total );
         send_mqtt_msg(c, mqtt_topic, mqtt_msg);
       } else if (_sdconfig_.currentZone.type != zcNONE) {
         sprintf(mqtt_topic, "%s/zone0/remainingduration", _sdconfig_.mqtt_topic);
@@ -306,7 +317,10 @@ void broadcast_sprinklerdactivestate(struct mg_connection *nc)
         send_mqtt_msg(c, mqtt_topic, mqtt_msg);
       }
 
-    }
+      if (_sdconfig_.currentZone.type != zcALL) {
+        
+      }
+    } 
   }
 }
 
@@ -765,6 +779,8 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
 static void ev_handler(struct mg_connection *nc, int ev, void *p) {
   struct mg_mqtt_message *mqtt_msg;
   struct http_message *http_msg;
+  static bool hapublished = false;
+  char aq_topic[30];
   //struct websocket_message *ws_msg;
   //static double last_control_time;
 
@@ -775,7 +791,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *p) {
   switch (ev) {
   case MG_EV_CONNECT: {
     set_mqtt(nc);
-    if (_sdconfig_.mqtt_topic != NULL || _sdconfig_.mqtt_dz_sub_topic != NULL) {
+    //if (_sdconfig_.mqtt_topic != NULL || _sdconfig_.mqtt_dz_sub_topic != NULL) {
       struct mg_send_mqtt_handshake_opts opts;
       memset(&opts, 0, sizeof(opts));
       opts.user_name = _sdconfig_.mqtt_user;
@@ -784,12 +800,17 @@ static void ev_handler(struct mg_connection *nc, int ev, void *p) {
       // opts.flags = 0x00;
       // opts.flags |= MG_MQTT_WILL_RETAIN;
       opts.flags |= MG_MQTT_CLEAN_SESSION; // NFS Need to readup on this
+
+      sprintf(aq_topic, "%s/%s", _sdconfig_.mqtt_topic,MQTT_LWM_TOPIC);
+      opts.will_topic = aq_topic;
+      opts.will_message = MQTT_OFF;
+
       mg_set_protocol_mqtt(nc);
       mg_send_mqtt_handshake_opt(nc, _sdconfig_.mqtt_ID, opts);
       logMessage(LOG_INFO, "Connected to mqtt %s with id of: %s\n", _sdconfig_.mqtt_address, _sdconfig_.mqtt_ID);
       _mqtt_status = mqttrunning;
       _mqtt_connection = nc;
-    }
+    //}
     //last_control_time = mg_time();
   } break;
 
@@ -825,12 +846,25 @@ static void ev_handler(struct mg_connection *nc, int ev, void *p) {
       mg_mqtt_subscribe(nc, topics, 1, 42);
       logMessage(LOG_INFO, "MQTT: Subscribing to '%s'\n", _sdconfig_.mqtt_dz_sub_topic);
     }
+
+    if (_sdconfig_.enableMQTTha && hapublished == false) {
+      logMessage (LOG_DEBUG, "MQTT: Publishing to Home Assistant\n");
+      publish_mqtt_hassio_discover(nc);
+      hapublished = true;
+    }
+
     broadcast_sprinklerdstate(nc);
     break;
 
   case MG_EV_MQTT_PUBACK:
     mqtt_msg = (struct mg_mqtt_message *)p;
-    logMessage(LOG_DEBUG, "Message publishing acknowledged (msg_id: %d)\n", mqtt_msg->message_id);
+    logMessage(LOG_DEBUG, "MQTT: Message publishing acknowledged (msg_id: %d)\n", mqtt_msg->message_id);
+    break;
+
+  case MG_EV_MQTT_SUBACK:
+    logMessage(LOG_DEBUG, "MQTT: Subscription(s) acknowledged\n");
+    sprintf(aq_topic, "%s/%s", _sdconfig_.mqtt_topic,MQTT_LWM_TOPIC);
+    send_mqtt_msg(nc, aq_topic ,MQTT_ON);
     break;
 
   case MG_EV_WEBSOCKET_HANDSHAKE_DONE:
@@ -903,8 +937,8 @@ bool check_net_services(struct mg_mgr *mgr) {
 
 void start_mqtt(struct mg_mgr *mgr) {
 
-  //if (_sdconfig_.enableMQTT == false) {
-  if( _sdconfig_.enableMQTTaq == false && _sdconfig_.enableMQTTdz == false ) {
+  if (_sdconfig_.enableMQTTaq == false) {
+  //if( _sdconfig_.enableMQTTaq == false && _sdconfig_.enableMQTTdz == false ) {
     logMessage (LOG_NOTICE, "MQTT client is disabled, not stating\n");
     _mqtt_status = mqttdisabled;
     return;
@@ -912,9 +946,9 @@ void start_mqtt(struct mg_mgr *mgr) {
 
   //generate_mqtt_id(_sdconfig_.mqtt_ID, sizeof(_sdconfig_.mqtt_ID)-1);
   if (strlen(_sdconfig_.mqtt_ID) < 1) {
-    logMessage (LOG_DEBUG, "MQTTaq %d | MQTTdz %d\n", _sdconfig_.enableMQTTaq, _sdconfig_.enableMQTTdz);
+    //logMessage (LOG_DEBUG, "MQTTaq %d | MQTTdz %d\n", _sdconfig_.enableMQTTaq, _sdconfig_.enableMQTTdz);
     generate_mqtt_id(_sdconfig_.mqtt_ID, MQTT_ID_LEN-1);
-    logMessage (LOG_DEBUG, "MQTTaq %d | MQTTdz %d\n", _sdconfig_.enableMQTTaq, _sdconfig_.enableMQTTdz);
+    logMessage (LOG_DEBUG, "MQTTaq %d | MQTTdz %d | MQTTha %d\n", _sdconfig_.enableMQTTaq, _sdconfig_.enableMQTTdz, _sdconfig_.enableMQTTha);
   }
 
   logMessage (LOG_NOTICE, "Starting MQTT client to %s\n", _sdconfig_.mqtt_address);

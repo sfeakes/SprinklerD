@@ -296,6 +296,8 @@ void main_loop ()
     exit(EXIT_FAILURE);
   }
   
+  
+
   i=0;
   while (true)
   {
@@ -306,12 +308,16 @@ void main_loop ()
     if (zc_check() == true || check_delay24h() == true || _sdconfig_.eventToUpdateHappened) {
       _sdconfig_.eventToUpdateHappened = false;
       broadcast_sprinklerdstate(_mgr.active_connections);
-    }
-
-    if (i >= 20) {
+      broadcast_sprinklerdactivestate(_mgr.active_connections);
+    } else if (i > 10 && _sdconfig_.currentZone.type!=zcNONE) {
       i=0;
-      if (_sdconfig_.currentZone.type != zcNONE)
+      broadcast_sprinklerdactivestate(_mgr.active_connections);
+    } else {
+      if (i >= 600) {
+        i=0;
+        broadcast_sprinklerdstate(_mgr.active_connections);
         broadcast_sprinklerdactivestate(_mgr.active_connections);
+      }
     }
 
     //logMessage (LOG_DEBUG, "check_net_services\n");

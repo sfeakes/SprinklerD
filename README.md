@@ -93,6 +93,16 @@ Specifically, make sure you configure your MQTT, Pool Equiptment Labels & Domoti
 
 ## Included scripts in extras directory.
 
+[sprinklerRainProbability.sh](https://github.com/sfeakes/sprinklerd/blob/master/extras/sprinklerRainProbability.sh)
+
+Script to check the chance of rain from forecast OpenWeather, WeaterBit, Climacell, WeatherAPI, if it's greater than a configured percentage then enable the 24h rainDelay on SprinklerD.
+Simply edit the scrips with your values, and use cron to run it 30mins before your sprinkelrs are due to turn on each day. If the chance of rain is over your configured % it will enable SprinklerD's 24h rain delay, which will stop the sprinklers running that day, and the 24h delay will timeout before the sprinklers are due to run the next day. (or be enabeled again if the chance of rain is high).
+You will need to edit this script for your API keys.
+
+Example cron entry  
+`0 5 * * * ~/bin/sprinklerRainProbability.sh weatherapi`
+
+<!--
 [sprinklerDarkskys.sh](https://github.com/sfeakes/sprinklerd/blob/master/extras/sprinklerDarkskys.sh)
 Script to check the chance of rain from darkskys forecast API, if it's greater than a configured percentage then enable the 24h rainDelay on SprinklerD.
 Simply edit the scrips with your values, and use cron to run it 30mins before your sprinkelrs are due to turn on each day. If the chance of rain is over your configured % it will enable SprinklerD's 24h rain delay, which will stop the sprinklers running that day, and the 24h delay will timeout before the sprinklers are due to run the next day. (or be enabeled again if the chance of rain is high)
@@ -106,7 +116,7 @@ Script to pull daily rain total from Meteohub and send it to SprinklerD.  Sprink
 
 [sprinklerRainDelay.sh](https://github.com/sfeakes/sprinklerd/blob/master/extras/sprinklerRainDelay.sh)
 Script to enable extended rain delays. i.e. I have my weatherstation triger this script when it detects rain. The script will cancel any running zones and enable a rain delay.  You can use a number on command line parameter to enable long delays, (number represents number of days).  So if my rainsensor logs over 5mm rain in any 24h period it will call this script with a 2 day delay, or 3 day delay if over 15mm of rain. 
-
+-->
 
 # Configuration with home automation hubs
 

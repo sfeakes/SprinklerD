@@ -1,6 +1,6 @@
 #ifndef SD_VERSION_H
 #define SD_VERSION_H
 
-#define SD_VERSION "1.2"
+#define SD_VERSION "1.3"
 
 #endif
