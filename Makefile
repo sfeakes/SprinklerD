@@ -49,7 +49,14 @@ GPIO = ./release/gpio
 # deleting dependencies appended to the file from 'make depend'
 #
 
-.PHONY: depend clean
+.PHONY: depend clean release
+
+release:
+	sudo docker run -it --mount type=bind,source=./,target=/build aqualinkd-releasebin make armhf 
+	$(info Binaries for release have been built)
+
+armhf:  CC = arm-linux-gnueabihf-gcc
+armhf:  $(MAIN) 
 
 all:    $(MAIN) 
   @echo: $(MAIN) have been compiled

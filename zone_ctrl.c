@@ -42,6 +42,8 @@ int start_next_zone(int startz) {
 
   int zone = startz+1;
 
+  setEventZones;
+
   while( _sdconfig_.zonecfg[zone].default_runtime <= 0 || !validGPIO( _sdconfig_.zonecfg[zone].pin) ) {
     //logMessage (LOG_INFO, "Run Zone, skipping zone %d due to runtime of %d\n",zone,_sdconfig_.zonecfg[zone].default_runtime);
     logMessage (LOG_INFO, "Run Zone, skipping zone %d due to %s\n",zone,_sdconfig_.zonecfg[zone].default_runtime<=0?" runtime of 0":" bad GPIO pin#");
@@ -74,6 +76,7 @@ void zc_update_runtime(int zone) {
   if (zone > 0 && zone < _sdconfig_.zones && zone == _sdconfig_.currentZone.zone) {
     _sdconfig_.currentZone.duration=_sdconfig_.zonecfg[zone].default_runtime;
   }
+  setEventZones;
 }
 
 bool zc_check() {
@@ -236,7 +239,8 @@ bool zc_start(/*zcRunType type,*/ int zone) {
   digitalWrite(_sdconfig_.zonecfg[zone].pin, _sdconfig_.zonecfg[zone].on_state );
   int rtn = true;
 #endif
-  _sdconfig_.eventToUpdateHappened = true;
+  //_sdconfig_.eventToUpdateHappened = true;
+  setEventZones;
 
   return rtn;
   // store what's running 
@@ -264,7 +268,8 @@ bool zc_stop(/*zcRunType type,*/ int zone) {
   digitalWrite(_sdconfig_.zonecfg[zone].pin, !_sdconfig_.zonecfg[zone].on_state );
   int rtn = true;
 #endif
-  _sdconfig_.eventToUpdateHappened = true;
+  //_sdconfig_.eventToUpdateHappened = true;
+  setEventZones;
 
   return rtn;
   /*

@@ -148,7 +148,8 @@ int main (int argc, char *argv[])
   _sdconfig_.calendar = true;
   _sdconfig_.currentZone.type = zcNONE;
   _sdconfig_.cron_update = 0;
-  _sdconfig_.eventToUpdateHappened = false;
+  //_sdconfig_.eventToUpdateHappened = false;
+  _sdconfig_.updateEventMask = 0;
   read_cron();
   read_cache();
 
@@ -303,10 +304,10 @@ void main_loop ()
   {
     //logMessage (LOG_DEBUG, "mg_mgr_poll\n");
     mg_mgr_poll(&_mgr, 500);
-    
+    //logMessage (LOG_DEBUG, "updateEventMask=%d\n",_sdconfig_.updateEventMask);
     check_cron();
-    if (zc_check() == true || check_delay24h() == true || _sdconfig_.eventToUpdateHappened) {
-      _sdconfig_.eventToUpdateHappened = false;
+    if (zc_check() == true || check_delay24h() == true || _sdconfig_.updateEventMask != 0) {
+      //_sdconfig_.eventToUpdateHappened = false;
       broadcast_sprinklerdstate(_mgr.active_connections);
       broadcast_sprinklerdactivestate(_mgr.active_connections);
     } else if (i > 10 && _sdconfig_.currentZone.type!=zcNONE) {

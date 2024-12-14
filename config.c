@@ -368,6 +368,7 @@ void readCfg(char *inifile)
     exit (EXIT_FAILURE);
   }
 
+  _sdconfig_.inputs = 0;
   // Caculate how many inputs we have
   for (i=1; i <= 24; i++) // 24 = Just some arbutary number (max GPIO without expansion board)
   {
@@ -417,6 +418,34 @@ void readCfg(char *inifile)
               "Set pull up/down", _sdconfig_.inputcfg[i].set_pull_updown,
               "ON state", _sdconfig_.inputcfg[i].on_state,
               "Domoticz IDX", _sdconfig_.inputcfg[i].dz_idx);
+    }
+  }
+
+  _sdconfig_.runBeforeCmds = 0;
+  // Caculate how many external command to run
+  for (i=1; i <= 10; i++) // 10 = Just some arbutary number 
+  {
+    sprintf(str, "EXTERNAL:%d", i);
+    pin = ini_getl(str, "RUNB4STARTTIME", -1, inifile);
+    if (pin == -1)
+      break;
+    else
+      _sdconfig_.runBeforeCmds = i;
+  }
+
+  if ( _sdconfig_.runBeforeCmds != 0) {
+  //  n= _sdconfig_.zones+1;
+    _sdconfig_.runBeforeCmd = malloc((_sdconfig_.runBeforeCmds) * sizeof(struct RunB4CalStart));
+    for (i=0; i < _sdconfig_.runBeforeCmds; i++)
+    {
+      sprintf(str, "EXTERNAL:%d", i+1);
+      _sdconfig_.runBeforeCmd[i].mins = ini_getl(str, "RUNB4STARTTIME", -1, inifile);
+      ini_gets(str, "COMMAND", NULL, _sdconfig_.runBeforeCmd[i].command, sizearray(_sdconfig_.runBeforeCmd[i].command), inifile);
+      //if (_sdconfig_.runBeforeCmd[i].mins <= 0 || _sdconfig_.runBeforeCmd[i].mins > 120) {
+      //  logMessage (LOG_ERR, "RUNB4STARTTIME %d is not valid, found in EXTERNAL:%d of configuration file %s \n",_sdconfig_.runBeforeCmd[i].mins, i+1, inifile);
+      //  continue;
+      //}
+      logMessage (LOG_DEBUG,"Run external command '%s', %d mins before start time\n",_sdconfig_.runBeforeCmd[i].command, _sdconfig_.runBeforeCmd[i].mins);
     }
   }
 

@@ -24,6 +24,11 @@ struct CALENDARday {
   int minute;
   int *zruntimes;
 };
+
+struct RunB4CalStart {
+  int mins;
+  char command[256]; 
+};
 /*
 struct GPIOextra {
   char command_high[COMMAND_SIZE];
@@ -96,8 +101,11 @@ struct sprinklerdcfg {
   long cron_update;
   int log_level;
   struct szRunning currentZone;
+  struct RunB4CalStart *runBeforeCmd;
+  int runBeforeCmds;
   char cache_file[512];
-  bool eventToUpdateHappened;
+  //bool eventToUpdateHappened;
+  uint8_t updateEventMask;
   int todayRainChance;
   float todayRainTotal;
 };
@@ -127,5 +135,26 @@ void read_cache();
 #define ON 0
 #define OFF 1
 */
+
+#define UPDATE_RAINTOTAL       (1 << 0) // 
+#define UPDATE_RAINPROBABILITY (1 << 1) // 
+#define UPDATE_ZONES           (1 << 2) //
+#define UPDATE_STATUS          (1 << 3) // 
+
+#define isEventRainTotal ((_sdconfig_.updateEventMask & UPDATE_RAINTOTAL) == UPDATE_RAINTOTAL)
+#define isEventRainProbability ((_sdconfig_.updateEventMask & UPDATE_RAINPROBABILITY) == UPDATE_RAINPROBABILITY)
+#define isEventZones ((_sdconfig_.updateEventMask & UPDATE_ZONES) == UPDATE_ZONES)
+#define isEventStatus ((_sdconfig_.updateEventMask & UPDATE_STATUS) == UPDATE_STATUS)
+
+#define setEventRainTotal (_sdconfig_.updateEventMask |= UPDATE_RAINTOTAL)
+#define setEventRainProbability (_sdconfig_.updateEventMask |= UPDATE_RAINPROBABILITY)
+#define setEventZones (_sdconfig_.updateEventMask |= UPDATE_ZONES)
+#define setEventStatus (_sdconfig_.updateEventMask |= UPDATE_STATUS)
+
+#define clearEventRainTotal (_sdconfig_.updateEventMask &= ~UPDATE_RAINTOTAL)
+#define clearEventRainProbability (_sdconfig_.updateEventMask &= ~UPDATE_RAINPROBABILITY)
+#define clearEventZones (_sdconfig_.updateEventMask &= ~UPDATE_ZONES)
+#define clearEventStatus (_sdconfig_.updateEventMask &= ~UPDATE_STATUS)
+
 #define NO_CHANGE 2
 #endif /* CONFIG_H_ */

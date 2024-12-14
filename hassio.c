@@ -10,13 +10,18 @@
 #include "net_services.h"
 #include "version.h"
 
+
+
+//#define HASS_EXPIRE ""\"expire_after"\": 300,"
+#define HASS_EXPIRE ""
+
 #define HASS_DEVICE "\"identifiers\": " \
                         "[\"SprinklerD\"]," \
                         " \"sw_version\": \"" SD_VERSION "\"," \
                         " \"model\": \"Sprinkler Daemon\"," \
                         " \"name\": \"SprinklerD\"," \
                         " \"manufacturer\": \"SprinklerD\"," \
-                        " \"suggested_area\": \"pool\""
+                        " \"suggested_area\": \"garden\""
 
 #define HASS_AVAILABILITY "\"payload_available\" : \"1\"," \
                           "\"payload_not_available\" : \"0\"," \
@@ -32,6 +37,18 @@ const char *HASSIO_TEXT_SENSOR_DISCOVER = "{"
    "\"icon\": \"mdi:card-text\""
 "}";
 
+const char *HASSIO_SENSOR_DISCOVER = "{"
+    "\"device\": {" HASS_DEVICE "},"
+    "\"availability\": {" HASS_AVAILABILITY "},"
+    "\"type\": \"sensor\","
+    "\"unique_id\": \"%s\","
+    "\"name\": \"%s\","
+    "\"state_topic\": \"%s/%s\","
+    "\"value_template\": \"{{ value_json }}\","
+    "\"unit_of_measurement\": \"%s\","
+    "\"icon\": \"%s\""
+"}";
+
 const char *HASSIO_SWITCH_DISCOVER = "{"
     "\"device\": {" HASS_DEVICE "},"
     "\"availability\": {" HASS_AVAILABILITY "},"
@@ -41,9 +58,7 @@ const char *HASSIO_SWITCH_DISCOVER = "{"
     "\"state_topic\": \"%s/%s\","
     "\"command_topic\": \"%s/%s/set\","
     "\"payload_on\": \"1\","
-    "\"payload_off\": \"0\","
-    "\"qos\": 1,"
-    "\"retain\": false"
+    "\"payload_off\": \"0\""
 "}";
 
 const char *HASSIO_VALVE_DISCOVER = "{"
@@ -57,9 +72,7 @@ const char *HASSIO_VALVE_DISCOVER = "{"
     "\"command_topic\": \"%s/zone%d/set\","  // 1
     "\"value_template\": \"{%% set values = { '0':'closed', '1':'open'} %%}{{ values[value] if value in values.keys() else 'closed' }}\","
     "\"payload_open\": \"1\","
-    "\"payload_close\": \"0\","
-    "\"qos\": 1,"
-    "\"retain\": false"
+    "\"payload_close\": \"0\""
 "}";
 
 void publish_mqtt_hassio_discover(struct mg_connection *nc)
@@ -120,6 +133,28 @@ void publish_mqtt_hassio_discover(struct mg_connection *nc)
                _sdconfig_.mqtt_topic, "cycleallzones" );
   send_mqtt_msg(nc, topic, msg);
 
+
+  sprintf(id,"sprinklerd_rainprobability");
+  sprintf(topic, "%s/sensor/sprinklerd/%s/config", _sdconfig_.mqtt_ha_dis_topic, id);
+  sprintf(msg, HASSIO_SENSOR_DISCOVER,
+               _sdconfig_.mqtt_topic,
+               id,
+               "Todays Rain Probability",
+               _sdconfig_.mqtt_topic, "chanceofrain",
+               "%",
+               "mdi:water-percent" );
+  send_mqtt_msg(nc, topic, msg);
+
+  sprintf(id,"sprinklerd_raintotal");
+  sprintf(topic, "%s/sensor/sprinklerd/%s/config", _sdconfig_.mqtt_ha_dis_topic, id);
+  sprintf(msg, HASSIO_SENSOR_DISCOVER,
+               _sdconfig_.mqtt_topic,
+               id,
+               "Todays Rain Total",
+               _sdconfig_.mqtt_topic, "raintotal",
+               "\\\"",
+               "mdi:weather-hail" );
+  send_mqtt_msg(nc, topic, msg);
 
 
 

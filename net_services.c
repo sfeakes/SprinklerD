@@ -191,7 +191,7 @@ void send_mqtt_msg(struct mg_connection *nc, char *toppic, char *message)
   //mg_mqtt_publish(nc, toppic, msg_id, MG_MQTT_QOS(0), message, strlen(message));
   mg_mqtt_publish(nc, toppic, msg_id, MG_MQTT_RETAIN | MG_MQTT_QOS(1), message, strlen(message));
 
-  logMessage(LOG_INFO, "MQTT: Published id=%d: %s %s\n", msg_id, toppic, message);
+  logMessage(LOG_DEBUG, "MQTT: Published id=%d: %s %s\n", msg_id, toppic, message);
 }
 
 void publish_zone_mqtt(struct mg_connection *nc, struct GPIOcfg *gpiopin) {
@@ -322,6 +322,16 @@ void broadcast_sprinklerdactivestate(struct mg_connection *nc)
       }
     } 
   }
+
+  clearEventZones;
+}
+
+int getTodayString(char *buffer, int size) {
+  time_t rawtime;
+  struct tm * timeinfo;
+  time (&rawtime);
+  timeinfo = localtime (&rawtime);
+  return strftime (buffer,size,"%a %h %d.",timeinfo);
 }
 
 void broadcast_sprinklerdstate(struct mg_connection *nc) 
@@ -332,6 +342,8 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
   static char mqtt_topic[250];
   static char mqtt_msg[50];
   static char last_state_msg[50];
+  static int publishedTodayRainChance = -1;
+  static float publishedTodayRainTotal = -1;
 
   for (c = mg_next(nc->mgr, NULL); c != NULL; c = mg_next(nc->mgr, c)) {
     // Start from 0 since we publish master valve (just a temp measure)
@@ -358,6 +370,30 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
       sprintf(mqtt_topic, "%s/status", _sdconfig_.mqtt_topic);
       sprinklerdstatus(mqtt_msg, 50);
       send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+      if (publishedTodayRainChance != _sdconfig_.todayRainChance || isEventRainProbability) {
+        sprintf(mqtt_topic, "%s/chanceofrain", _sdconfig_.mqtt_topic);
+        sprintf(mqtt_msg, "%d",_sdconfig_.todayRainChance); 
+        send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+        publishedTodayRainChance = _sdconfig_.todayRainChance;
+
+        getTodayString(mqtt_msg, 50);
+        sprintf(mqtt_topic, "%s/chanceofrain/day", _sdconfig_.mqtt_topic);
+        send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+
+        clearEventRainProbability;
+      }
+      if (publishedTodayRainTotal != _sdconfig_.todayRainTotal || isEventRainTotal) {
+        sprintf(mqtt_topic, "%s/raintotal", _sdconfig_.mqtt_topic);
+        sprintf(mqtt_msg, "%.2f",_sdconfig_.todayRainTotal); 
+        send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+        publishedTodayRainTotal = _sdconfig_.todayRainTotal;
+
+        getTodayString(mqtt_msg, 50);
+        sprintf(mqtt_topic, "%s/raintotal/day", _sdconfig_.mqtt_topic);
+        send_mqtt_msg(c, mqtt_topic, mqtt_msg);
+
+        clearEventRainTotal;
+      }
      }
      if (_sdconfig_.enableMQTTdz == true) {
       if (_sdconfig_.dzidx_calendar > 0 && update_dz_cache(_sdconfig_.dzidx_calendar,(_sdconfig_.calendar==true ? DZ_ON : DZ_OFF) )) {
@@ -383,6 +419,9 @@ void broadcast_sprinklerdstate(struct mg_connection *nc)
      }
     }
   }
+
+  clearEventStatus;
+
   return;
 }
 
@@ -402,7 +441,8 @@ bool is_value_flip(char *buf) {
     return false;
 }
 
-int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, char *buffer, int size, bool *changedOption) {
+//int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, char *buffer, int size, bool *changedOption) {
+int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, char *buffer, int size) {
   static int buflen = 50;
   char buf[buflen];
   //int action = -1;
@@ -475,11 +515,12 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
         logMessage(LOG_WARNING, "Bad request unknown option\n");
         length = sprintf(buffer,  "{ \"error\": \"Bad request unknown option\" }");
       }
-      *changedOption = true;
+      //*changedOption = true;
+      setEventStatus;
       //broadcast_sprinklerdstate(nc);
   } else if (strncasecmp(buf, "config", 6) == 0) {
     mg_get_http_var(&http_msg->query_string, "option", buf, buflen);
-    if (strncasecmp(buf, "raindelaychance", 15) == 0)
+    if (strncasecmp(buf, "raindelaychance", 15) == 0 )
     {
       mg_get_http_var(&http_msg->query_string, "value", buf, buflen);
       _sdconfig_.precipChanceDelay = atoi(buf);
@@ -499,9 +540,11 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
     mg_get_http_var(&http_msg->query_string, "sensor", buf, buflen);
     if (strncasecmp(buf, "chanceofrain", 13) == 0) {
       mg_get_http_var(&http_msg->query_string, "value", buf, buflen);
+      logMessage(LOG_NOTICE, "API: Chance of rain %d%%\n",atoi(buf));
       setTodayChanceOfRain(atoi(buf));
     } else if (strncasecmp(buf, "raintotal", 9) == 0) {
       mg_get_http_var(&http_msg->query_string, "value", buf, buflen);
+      logMessage(LOG_NOTICE, "API: Rain total %.2f\n",atof(buf));
       setTodayRainTotal(atof(buf));
     }
     length = build_sprinkler_JSON(buffer, size);
@@ -519,13 +562,16 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
     //if ( (strncasecmp(buf, "off", 3) == 0 || strncmp(buf, "0", 1) == 0) && zone <= _sdconfig_.zones) {
     if (is_value_ON(buf) == true && zone <= _sdconfig_.zones)
     {
+      logMessage(LOG_NOTICE, "API: Turn zone %d on for %d mins\n",zone,runtime);
       zc_zone(type, zone, zcON, runtime);
       length = build_sprinkler_JSON(buffer, size);
       //} else if ( (strncasecmp(buf, "on", 2) == 0 || strncmp(buf, "1", 1) == 0) && zone <= _sdconfig_.zones) {
     } else if ( is_value_ON(buf) == false && zone <= _sdconfig_.zones) {
+      logMessage(LOG_NOTICE, "API: Turn zone %d off\n",zone);
       zc_zone(type, zone, zcOFF, runtime);
       length = build_sprinkler_JSON(buffer, size);
     } else if ( is_value_flip(buf) == true && zone <= _sdconfig_.zones) {
+      logMessage(LOG_NOTICE, "API: Turn zone %d %s\n",zone, !zc_state(zone)==zcON?"ON":"OFF");
       zc_zone(type, zone, !zc_state(zone), runtime);
     } else {
       if (zone > _sdconfig_.zones) {
@@ -535,6 +581,8 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
         logMessage(LOG_WARNING, "Bad request on zone %d, unknown state %s\n",zone, buf);
         length = sprintf(buffer,  "{ \"error\": \"Bad request on zone %d, unknown state %s\"}", zone, buf);
       }
+
+      setEventZones;
     }
   } else if (strcmp(buf, "zrtcfg") == 0) {
       //logMessage(LOG_DEBUG, "WEB REQUEST cfg %s\n",buf);
@@ -547,7 +595,8 @@ int serve_web_request(struct mg_connection *nc, struct http_message *http_msg, c
         logMessage(LOG_DEBUG, "changed default runtime on zone %d, to %d\n",zone, runtime);
         length = build_sprinkler_JSON(buffer, size);
         zc_update_runtime(zone);
-        *changedOption = true;
+        //*changedOption = true;
+        setEventZones;
       } else
         length += sprintf(buffer,  "{ \"error\": \"bad request zone %d runtime %d\"}",zone,runtime);
   } else if (strcmp(buf, "calcfg") == 0) {
@@ -591,13 +640,14 @@ void action_web_request(struct mg_connection *nc, struct http_message *http_msg)
   char buf[bufsize];
   char *c_type;
   int size = 0;
-  bool changedOption = false;
+  //bool changedOption = false;
 
   logMessage(LOG_DEBUG, "action_web_request %.*s %.*s\n",http_msg->uri.len, http_msg->uri.p, http_msg->query_string.len, http_msg->query_string.p);
 
   if (http_msg->query_string.len > 0) {
       //size = serve_web_request(nc, http_msg, buf, sizeof(buf));
-    size = serve_web_request(nc, http_msg, buf, bufsize, &changedOption);
+    //size = serve_web_request(nc, http_msg, buf, bufsize, &changedOption);
+    size = serve_web_request(nc, http_msg, buf, bufsize);
     c_type = CT_JSON;
     
     if (size <= 0) {
@@ -608,9 +658,8 @@ void action_web_request(struct mg_connection *nc, struct http_message *http_msg)
     mg_send(nc, buf, size);
       //logMessage (LOG_DEBUG, "Web Return %d = '%.*s'\n",size, size, buf);
     
-    if (changedOption)
-      _sdconfig_.eventToUpdateHappened = true;
-      //broadcast_sprinklerdstate(nc);
+    //if (changedOption)
+    //  _sdconfig_.eventToUpdateHappened = true;
 
     return;
   }
@@ -730,7 +779,8 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
     if (zone > 0 && zone <= _sdconfig_.zones) {
       int v = str2int(msg->payload.p, msg->payload.len);
       _sdconfig_.zonecfg[zone].default_runtime = v / 60;
-      _sdconfig_.eventToUpdateHappened = true;
+      //_sdconfig_.eventToUpdateHappened = true;
+      //setEventZones;
       zc_update_runtime(zone);
       logMessage(LOG_DEBUG, "MQTT: Default runtime zone %d is %d\n",zone,_sdconfig_.zonecfg[zone].default_runtime);
     } else {
@@ -738,39 +788,42 @@ void action_mqtt_message(struct mg_connection *nc, struct mg_mqtt_message *msg){
     }
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "24hdelay", 8) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     enable_delay24h(status==zcON?true:false);
-    logMessage(LOG_DEBUG, "MQTT: Enable 24 hour delay %s\n",status==zcON?"YES":"NO");
+    logMessage(LOG_NOTICE, "MQTT: Enable 24 hour delay %s\n",status==zcON?"YES":"NO");
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "calendar", 6) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     //_sdconfig_.system=status==zcON?true:false;
-    logMessage(LOG_NOTICE, "MQTT request to turn Calendar %s\n",status==zcON?"On":"Off");
+    logMessage(LOG_DEBUG, "MQTT request to turn Calendar %s\n",status==zcON?"On":"Off");
     enable_calendar(status==zcON?true:false);
-    logMessage(LOG_DEBUG, "MQTT: Turning calendar %s\n",status==zcON?"ON":"OFF");
+    logMessage(LOG_NOTICE, "MQTT: Turning calendar %s\n",status==zcON?"ON":"OFF");
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "cycleallzones", 13) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     zc_zone(zcALL, 0, status, 0);
-    logMessage(LOG_DEBUG, "MQTT: Cycle all zones %s\n",status==zcON?"ON":"OFF");
+    logMessage(LOG_NOTICE, "MQTT: Cycle all zones %s\n",status==zcON?"ON":"OFF");
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "raintotal", 9) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     float v = str2float(msg->payload.p, msg->payload.len);
-    logMessage(LOG_DEBUG, "MQTT: Rain total %.2f\n",v);
+    logMessage(LOG_NOTICE, "MQTT: Rain total %.2f\n",v);
     setTodayRainTotal(v);
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "chanceofrain", 12) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     int v = str2int(msg->payload.p, msg->payload.len);
-    logMessage(LOG_DEBUG, "MQTT: Chance of rain %d%%\n",v);
+    logMessage(LOG_NOTICE, "MQTT: Chance of rain %d%%\n",v);
     setTodayChanceOfRain(v);
   } else if (pt2 != NULL && pt3 != NULL && strncmp(pt2, "zone", 4) == 0 && strncmp(pt3, "set", 3) == 0 ) {
     int zone = atoi(&pt2[4]);
     if (zone > 0 && zone <= _sdconfig_.zones) {
+      logMessage(LOG_NOTICE, "MQTT: Turn zone %d %s\n",zone, status==zcON?"ON":"OFF");
       zc_zone(zcSINGLE, zone, status, 0);
-      logMessage(LOG_DEBUG, "MQTT: Turn zone %d %s\n",zone, status==zcON?"ON":"OFF");
     } else if (zone == 0 && status == zcOFF && _sdconfig_.currentZone.type != zcNONE) { 
       // request to turn off master will turn off any running zone
-      zc_zone(zcSINGLE, _sdconfig_.currentZone.zone , zcOFF, 0);
       logMessage(LOG_DEBUG, "MQTT: Request master valve off, turned zone %d off\n",_sdconfig_.currentZone.zone);
+      zc_zone(zcSINGLE, _sdconfig_.currentZone.zone , zcOFF, 0);
     } else if (zone == 0 && status == zcON) {
       // Can't turn on master valve, just re-send current stats.
-      _sdconfig_.eventToUpdateHappened = true; 
+      //_sdconfig_.eventToUpdateHappened = true;
+      setEventZones;
+      setEventStatus;
     } else {
       logMessage(LOG_WARNING, "MQTT: unknown zone %d\n",zone);
     }
   } else {
+    // No set. nothing for us to do.
     logMessage(LOG_DEBUG, "MQTT: Unknown topic %.*s %.*s\n",msg->topic.len, msg->topic.p, msg->payload.len, msg->payload.p);
     return;
   }

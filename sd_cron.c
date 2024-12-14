@@ -15,10 +15,14 @@ bool setTodayChanceOfRain(int percent)
 {
   logMessage(LOG_DEBUG, "Set today's chance of rain = %d\n",percent);
   if (percent <= 100 && percent >= 0) {
+    //_sdconfig_.eventToUpdateHappened = true;
+    setEventRainProbability;
     _sdconfig_.todayRainChance  = percent;
     if (_sdconfig_.precipChanceDelay > 0 && _sdconfig_.todayRainChance >= _sdconfig_.precipChanceDelay) {
       //enable_delay24h(true);
-      reset_delay24h_time(0); // will add 24hours or reset
+      reset_delay24h_time(0); // will add 24hours or turn on and set delay to 24hours
+    } else {
+      enable_delay24h(false); // Turn off rain delay
     }
     return true;
   }
@@ -28,10 +32,12 @@ bool setTodayChanceOfRain(int percent)
 
 bool setTodayRainTotal(float rain)
 {
-  if (_sdconfig_.todayRainTotal == rain)
+  if (_sdconfig_.todayRainTotal == rain && rain != 0)
     return true;
-   
-   _sdconfig_.todayRainTotal = rain;
+  
+  _sdconfig_.todayRainTotal = rain;
+  //_sdconfig_.eventToUpdateHappened = true;
+  setEventRainTotal;
 
   logMessage(LOG_DEBUG, "Today's rain total = %f\n",_sdconfig_.todayRainTotal);
 
@@ -64,7 +70,8 @@ bool check_delay24h()
 void enable_calendar(bool state)
 {
   if (_sdconfig_.calendar != state) {
-    _sdconfig_.eventToUpdateHappened = true;
+    //_sdconfig_.eventToUpdateHappened = true;
+    setEventStatus;
     _sdconfig_.calendar = state;
     logMessage(LOG_NOTICE, "Turning %s calendar\n",state==true?"on":"off");
   } else {
@@ -75,7 +82,8 @@ void enable_calendar(bool state)
 void enable_delay24h(bool state)
 {
   if (_sdconfig_.delay24h != state) {
-    _sdconfig_.eventToUpdateHappened = true;
+    //_sdconfig_.eventToUpdateHappened = true;
+    setEventStatus;
 
     _sdconfig_.delay24h = state;
     if (state) {
@@ -96,7 +104,8 @@ void enable_delay24h(bool state)
 void reset_delay24h_time(unsigned long dtime)
 {
   if (_sdconfig_.delay24h != true) {
-    _sdconfig_.eventToUpdateHappened = true;
+    //_sdconfig_.eventToUpdateHappened = true;
+    setEventStatus;
   }
 
   time_t now;
@@ -136,6 +145,7 @@ void write_cron() {
   int hour;
   int day;
   int zone;
+  int rb4i;
 
   bool fs = remount_root_ro(false);
 
@@ -170,7 +180,26 @@ void write_cron() {
         }
       }
     }
+    
+    for (rb4i=0; rb4i<_sdconfig_.runBeforeCmds; rb4i++) {
+      if (_sdconfig_.cron[day].minute < _sdconfig_.runBeforeCmd[rb4i].mins) {
+        fprintf(fp, "%d %d * * %d root %s\n",
+                     (60 - (_sdconfig_.runBeforeCmd[rb4i].mins - _sdconfig_.cron[day].minute)),
+                     (_sdconfig_.cron[day].hour - 1),
+                     day,
+                     _sdconfig_.runBeforeCmd[rb4i].command);
+      } else {
+        fprintf(fp, "%d %d * * %d root %s\n",
+                     (_sdconfig_.cron[day].minute - _sdconfig_.runBeforeCmd[rb4i].mins),
+                     _sdconfig_.cron[day].hour,
+                     day,
+                     _sdconfig_.runBeforeCmd[rb4i].command);
+      }
+    }
   }
+
+
+
   fprintf(fp, "0 0 * * * root /usr/bin/curl -s -o /dev/null 'localhost:%s?type=sensor&sensor=chanceofrain&value=0'\n",_sdconfig_.socket_port);
   fprintf(fp, "0 0 * * * root /usr/bin/curl -s -o /dev/null 'localhost:%s?type=sensor&sensor=raintotal&value=0'\n",_sdconfig_.socket_port);
   fprintf(fp, "#***** AUTO GENERATED DO NOT EDIT *****\n");
@@ -205,7 +234,7 @@ void read_cron() {
   for (day=0; day <= 6; day++) {
     _sdconfig_.cron[day].hour = -1;
     _sdconfig_.cron[day].minute = -1;
-    for (zone=1; zone < _sdconfig_.zones; zone ++) {
+    for (zone=0; zone < _sdconfig_.zones; zone ++) {
       _sdconfig_.cron[day].zruntimes[zone] = 0;
     }
   }
